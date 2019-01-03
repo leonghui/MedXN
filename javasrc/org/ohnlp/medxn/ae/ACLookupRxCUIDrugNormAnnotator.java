@@ -23,10 +23,18 @@
  *******************************************************************************/
 package org.ohnlp.medxn.ae;
 
-import java.util.ArrayList;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.Vector;
+import java.util.LinkedHashMap;
 
+import org.ahocorasick.trie.Emit;
+import org.ahocorasick.trie.Trie;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.uima.UimaContext;
@@ -36,91 +44,109 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
 import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
-import org.ohnlp.medtagger.dict.AhoCorasickDict;
 import org.ohnlp.medxn.type.Drug;
 
-
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Table;
 
 /**
- * AhoCorasick string matching algorithm to find normalized medication form using RxCUI.
- * Exact string matching.
- * @author Hongfang Liu, Sunghwan Sohn
+ * AhoCorasick string matching algorithm to find normalized medication form
+ * using RxCUI. Exact string matching.
+ * 
+ * @author Hongfang Liu, Sunghwan Sohn, Leong Hui Wong
  *
  */
 public class ACLookupRxCUIDrugNormAnnotator extends JCasAnnotator_ImplBase {
 
+	// Data structure to store keywords
+	// keyword, rxCui
+	private LinkedHashMap<String, String> keywordMap = new LinkedHashMap<>();
+
+	// Data structure to store concept terms
+	// rxCui, tty, term
+	private Table<String, String, String> conceptTable = HashBasedTable.create();
+
 	// LOG4J logger based on class name
-    private Logger logger = Logger.getLogger(getClass().getName());
-    
-    //data structure that stores the TRIE
-	AhoCorasickDict btac;
-	
+	private Logger logger = Logger.getLogger(getClass().getName());
+
+	// data structure that stores the TRIE
+	private Trie trie;
+
 	@Override
-	public void initialize(UimaContext aContext)
-			throws ResourceInitializationException {
+	public void initialize(UimaContext aContext) throws ResourceInitializationException {
 		super.initialize(aContext);
 		logger.setLevel(Level.DEBUG);
-				
+
 		try {
-			
-			String dict = aContext.getResourceFilePath("RxCUI");
-			btac = new AhoCorasickDict(dict);		
+			// LH: Build Aho-Corasick trie
+			// TODO Switch to FHIR query
+			URI dictUri = aContext.getResourceURI("RxCUI");
+			Path dictionary = Paths.get(dictUri);
+
+			try {
+				Files.lines(dictionary, Charset.forName("Cp1252")).forEach(line -> {
+					String[] parts = line.split("\\|"); // escape twice for pipe separator
+					String keyword = parts[0].replaceAll("\\s+", " ");
+					String rxCui = parts[1];
+					String tty = parts[2];
+					String term = parts[3];
+
+					keywordMap.put(keyword, rxCui);
+					conceptTable.put(rxCui, tty, term);
+				});
+			} catch (IOException ex) {
+				ex.printStackTrace();
+			}
+
+			trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
+					.addKeywords(keywordMap.keySet()).build();
+
 		} catch (ResourceAccessException e) {
 			e.printStackTrace();
-		} 		
+		}
 	}
 
 	@Override
 	public void process(JCas jCas) throws AnalysisEngineProcessException {
 		JFSIndexRepository indexes = jCas.getJFSIndexRepository();
-		Iterator<?> drugItr = indexes.getAnnotationIndex(Drug.type)
-		.iterator();
-		
-		while(drugItr.hasNext()) {
+		Iterator<?> drugItr = indexes.getAnnotationIndex(Drug.type).iterator();
+
+		while (drugItr.hasNext()) {
 			Drug med = (Drug) drugItr.next();
-			String[] tokens = med.getNormDrug2().replaceAll("<.*?>", " ").split(" +");
-			
-			ArrayList<Vector<String>> tags = new ArrayList<Vector<String>>(
-					tokens.length);
-			for (int i = 0; i < tokens.length; i++) {
-				tags.add(new Vector<String>());
-				//System.out.println(tokens[i]);
-			}
 
-			//TODO: debug this later
-			if (tokens.length > 200)
-				continue;
+			String text = med.getNormDrug2().replaceAll("<.*?>", " ").replaceAll("\\s+", " ").trim();
 
-			//debugging
-			//logger.debug(btac.root.phrase);
-			btac.find(tokens, 0, btac.root, tags); //tags contains results of matches
+			// LH: Populate CAS with matched tokens
+			// TODO Retrieve code attributes from FHIR
+			// TODO Handle more than one Emit
 
-			//loading stuff into CAS
-			for (int count = 0; count < tags.size(); count++) {	
-				int size=-1;
-				String mapping="";
-				//take the longest # of words
-				for (String con : tags.get(count)) {
-					String[] ts=con.split("::");
-					if(Integer.parseInt(ts[0]) > size) { //# words
-						size=Integer.parseInt(ts[0]); 
-						mapping=con;
+			Collection<Emit> emits = trie.parseText(text);
+
+			for (Emit emit : emits) {
+
+				String rxCui = keywordMap.get(emit.getKeyword());
+
+				if (!conceptTable.row(rxCui).isEmpty()) {
+					med.setNormRxCui2(rxCui); // RxCUI
+
+					Collection<String> terms = conceptTable.row(rxCui).values();
+
+					// feature-parity: get longest term
+					String longestTerm = "";
+					for (String term : terms) {
+						if (term.length() > longestTerm.length()) {
+							longestTerm = term;
+						}
 					}
+
+					BiMap<String, String> ttyMap = HashBiMap.create(conceptTable.row(rxCui));
+
+					med.setNormRxType2(ttyMap.inverse().get(longestTerm)); // Term type
+					med.setNormRxName2(longestTerm); // RxNorm name
 				}
-				if(size==-1) break; //no match
-				String code = mapping.substring(mapping.lastIndexOf(":") + 1);
-				String[] multiples=code.split("\\|\\|"); //if exists multiple codes
-				for(int multiple=0; multiple< multiples.length; multiple++){
-					String[] splits = multiples[multiple].split("\\|");
-					//System.out.println("normRxTerm|"+splits[2]);
-					med.setNormRxCui2(splits[0]); //RxCUI
-					med.setNormRxType2(splits[1]); //Term type
-					med.setNormRxName2(splits[2]); //RxNorm name
-				}
-				//if(size>=0) count+=size-1; 
-				count+=size-1; //start after the last matching words
 			}
 		}
 	}
 }
-
