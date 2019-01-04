@@ -30,7 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 
 import org.ahocorasick.trie.Emit;
@@ -39,9 +38,9 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
-import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
+import org.apache.uima.jcas.tcas.Annotation;
 import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medxn.type.Drug;
@@ -109,12 +108,11 @@ public class ACLookupRxCUIDrugNormAnnotator extends JCasAnnotator_ImplBase {
 	}
 
 	@Override
-	public void process(JCas jCas) throws AnalysisEngineProcessException {
+	public void process(JCas jCas) {
 		JFSIndexRepository indexes = jCas.getJFSIndexRepository();
-		Iterator<?> drugItr = indexes.getAnnotationIndex(Drug.type).iterator();
 
-		while (drugItr.hasNext()) {
-			Drug med = (Drug) drugItr.next();
+		for (Annotation annotation : indexes.getAnnotationIndex(Drug.type)) {
+			Drug med = (Drug) annotation;
 
 			String text = med.getNormDrug2().replaceAll("<.*?>", " ").replaceAll("\\s+", " ").trim();
 
