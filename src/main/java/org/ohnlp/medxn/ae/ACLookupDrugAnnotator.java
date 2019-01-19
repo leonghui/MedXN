@@ -1,9 +1,9 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
  *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
  *  triple-shield Mayo logo are trademarks and service marks of MFMER.
  *
- *  Except as contained in the copyright notice above, or as used to identify 
+ *  Except as contained in the copyright notice above, or as used to identify
  *  MFMER as the author of this software, the trade names, trademarks, service
  *  marks, or product names of the copyright holder shall not be used in
  *  advertising, promotion or otherwise in connection with this software without
@@ -13,13 +13,13 @@
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0 
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  *******************************************************************************/
 package org.ohnlp.medxn.ae;
 
@@ -33,19 +33,16 @@ import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
 import org.apache.uima.jcas.tcas.Annotation;
-import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.hl7.fhir.dstu3.model.*;
 import org.ohnlp.medtagger.type.ConceptMention;
+import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.typesystem.type.textspan.Segment;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -57,15 +54,15 @@ import java.util.Map;
 public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
     // Data structure to store keywords
-    // keyword, rxCui
-    private SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
+    // rxCui, keyword
+    private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
 
     // Data structure to store concept terms
     // rxCui, tty, term
-    private Table<String, String, String> conceptTable = HashBasedTable.create();
+    private final Table<String, String, String> conceptTable = HashBasedTable.create();
 
     // LOG4J logger based on class name
-    private Logger logger = Logger.getLogger(getClass().getName());
+    private final Logger logger = Logger.getLogger(getClass().getName());
 
     // data structure that stores the TRIE
     private Trie trie;
@@ -75,33 +72,35 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         super.initialize(aContext);
         logger.setLevel(Level.DEBUG);
 
-        try {
-            // LH: Build Aho-Corasick trie using IN and BN
-            // TODO Switch to FHIR query
-            URI dictUri = aContext.getResourceURI("RxNorm_BNIN");
-            Path dictionary = Paths.get(dictUri);
+        // Build Aho-Corasick trie using IN and BN
+        FhirQueryClient queryClient = new FhirQueryClient();
+        queryClient.initialize();
+        List<Substance> substances = queryClient.getAllSubstances();
 
-            try {
-                Files.lines(dictionary).forEach(line -> {
-                    String[] parts = line.split("\\|"); // escape twice for pipe separator
-                    String keyword = parts[0].replaceAll("\\s+", " ");
-                    String rxCui = parts[1];
-                    String tty = parts[2];
-                    String term = parts[3];
-
-                    keywordMap.put(rxCui, keyword);
-                    conceptTable.put(rxCui, tty, term);
-                });
-            } catch (IOException ex) {
-                ex.printStackTrace();
+        for (Substance substance: substances) {
+            for (Coding coding : substance.getCode().getCoding()) {
+                keywordMap.put(coding.getCode(), coding.getDisplay());
+                conceptTable.put(coding.getCode(), "IN", coding.getDisplay());
             }
-
-            trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
-                    .addKeywords(keywordMap.values()).build();
-
-        } catch (ResourceAccessException e) {
-            e.printStackTrace();
         }
+
+        List<Medication> medications = queryClient.getAllMedications();
+
+        for (Medication medication: medications) {
+            List<Extension> brandExtensions = medication
+                    .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand");
+            for (Extension brandExtension : brandExtensions) {
+                CodeableConcept brandName = (CodeableConcept) brandExtension.getValue();
+                String brandTerm = brandName.getCodingFirstRep().getDisplay();
+                String brandCode = brandName.getCodingFirstRep().getCode();
+                keywordMap.put(brandCode, brandTerm);
+                conceptTable.put(brandCode, "BN", brandTerm);
+            }
+        }
+
+        trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
+                .addKeywords(keywordMap.values()).build();
+
     }
 
     @Override
@@ -121,7 +120,8 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 // TODO Retrieve code attributes from FHIR
                 // TODO Investigate downstream use of "::" and other separators
 
-                String sentText = sent.getCoveredText().toLowerCase().replaceAll("\\s+", " ") // replace all whitespace characters with a space
+                String sentText = sent.getCoveredText().toLowerCase()
+                        .replaceAll("\\s+", " ") // replace all whitespace characters with a space
                         .replaceAll("(\\p{Punct})", " "); // replace all punctuations with a space
                 //		.replaceAll("(?<=\\w+)(\\p{Punct})", " "); // replace all punctuations after a word character with a space
 
@@ -129,7 +129,7 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
                 for (Emit emit : sentEmits) {
                     for (Map.Entry<String, String> entry : keywordMap.entries()) {
-                        if (entry.getValue().contentEquals(emit.getKeyword())) {
+                        if (entry.getValue().toLowerCase().contentEquals(emit.getKeyword())) {
                             String rxCui = entry.getKey();
 
                             int begin = sent.getBegin() + emit.getStart();
