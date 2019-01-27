@@ -78,26 +78,26 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
 
         queryClient
-            .getAllSubstances()
-            .forEach( substance -> {
-            Coding coding = substance.getCode().getCodingFirstRep();
-                keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase());
-                conceptTable.put(coding.getCode(), "IN", coding.getDisplay());
-            });
+                .getAllSubstances()
+                .forEach( substance -> {
+                    Coding coding = substance.getCode().getCodingFirstRep();
+                    keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase());
+                    conceptTable.put(coding.getCode(), "IN", coding.getDisplay());
+                });
 
         queryClient
-            .getAllMedications()
-            .forEach( medication -> {
-                List<Extension> brandExtensions = medication
-                    .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand");
-                brandExtensions.forEach( brandExtension -> {
-                    CodeableConcept brandName = (CodeableConcept) brandExtension.getValue();
-                    String brandTerm = brandName.getCodingFirstRep().getDisplay();
-                    String brandCode = brandName.getCodingFirstRep().getCode();
-                    keywordMap.put(brandCode, brandTerm.toLowerCase());
-                    conceptTable.put(brandCode, "BN", brandTerm);
+                .getAllMedications()
+                .forEach( medication -> {
+                    List<Extension> brandExtensions = medication
+                            .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand");
+                    brandExtensions.forEach( brandExtension -> {
+                        CodeableConcept brandName = (CodeableConcept) brandExtension.getValue();
+                        String brandTerm = brandName.getCodingFirstRep().getDisplay();
+                        String brandCode = brandName.getCodingFirstRep().getCode();
+                        keywordMap.put(brandCode, brandTerm.toLowerCase());
+                        conceptTable.put(brandCode, "BN", brandTerm);
+                    });
                 });
-            });
 
         trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
                 .addKeywords(keywordMap.values()).build();
@@ -127,35 +127,35 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 //		.replaceAll("(?<=\\w+)(\\p{Punct})", " "); // replace all punctuations after a word character with a space
 
                 trie.parseText(sentText)
-                    .forEach( emit -> {
-                        String rxCui = keywordMap.entries()
-                                .stream()
-                                .filter(entry -> entry.getValue().contentEquals(emit.getKeyword()))
-                                .map(Map.Entry::getKey)
-                                .findFirst()
-                                .orElse(null);
+                        .forEach( emit -> {
+                            String rxCui = keywordMap.entries()
+                                    .stream()
+                                    .filter(entry -> entry.getValue().contentEquals(emit.getKeyword()))
+                                    .map(Map.Entry::getKey)
+                                    .findFirst()
+                                    .orElse(null);
 
-                        if (rxCui != null && !conceptTable.row(rxCui).isEmpty()) {
+                            if (rxCui != null && !conceptTable.row(rxCui).isEmpty()) {
 
-                            int begin = sent.getBegin() + emit.getStart();
-                            int end = sent.getBegin() + emit.getEnd() + 1;
+                                int begin = sent.getBegin() + emit.getStart();
+                                int end = sent.getBegin() + emit.getEnd() + 1;
 
-                            ConceptMention neAnnot = new ConceptMention(jCas, begin, end);
+                                ConceptMention neAnnot = new ConceptMention(jCas, begin, end);
 
-                            BiMap<String, String> ttyMap = HashBiMap.create(conceptTable.row(rxCui));
+                                BiMap<String, String> ttyMap = HashBiMap.create(conceptTable.row(rxCui));
 
-                            conceptTable
-                                    .row(rxCui)
-                                    .values()
-                                    .forEach(term -> {
-                                        neAnnot.setNormTarget(term); // Preferred Term
-                                        neAnnot.setSemGroup(rxCui + "::" + ttyMap.inverse().get(term)); // RxCUI::TermType
-                                        neAnnot.setSentence(sent);
-                                        neAnnot.addToIndexes();
-                                    });
-                        }
+                                conceptTable
+                                        .row(rxCui)
+                                        .values()
+                                        .forEach(term -> {
+                                            neAnnot.setNormTarget(term); // Preferred Term
+                                            neAnnot.setSemGroup(rxCui + "::" + ttyMap.inverse().get(term)); // RxCUI::TermType
+                                            neAnnot.setSentence(sent);
+                                            neAnnot.addToIndexes();
+                                        });
+                            }
 
-                    });
+                        });
             }
         }
     }
