@@ -23,21 +23,30 @@
  */
 package org.ohnlp.medxn.ae;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Table;
+import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.type.MedAttr;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 
 
 /**
@@ -48,14 +57,66 @@ import java.util.regex.Pattern;
 public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 	class Attribute {
 		String tag;
+		String text;
 		int begin;
 		int end;
 	}
+
+	// Data structure to store keywords
+	// rxCui, keyword
+	private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
+
+	// Data structure to store concept terms
+	// rxCui, tty, term
+	private Table<String, String, String> conceptTable;
+
+	// data structure that stores the TRIE
+	private Trie trie;
+
 	private Map< String, List<String> > regExPat;
 
 	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
 		super.initialize(uimaContext);
 		regExPat = new HashMap<>();
+
+		FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
+
+		conceptTable = queryClient.getAllDosageForms();
+
+		conceptTable.rowKeySet().forEach(rxCui -> {
+			String term = conceptTable.get(rxCui, "DF");
+
+			keywordMap.put(rxCui, term.toLowerCase());
+
+			// enrich keyword map with common synonyms
+			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Solution", "Solution").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Suspension", "Suspension").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Tablet", "Tab").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Capsule", "Cap").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Injection", "Inj").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Injectable", "Inj").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
+
+			// enrich keyword map with common homonyms
+			keywordMap.put(rxCui, term.replaceAll("(?i)Oral", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Ophthalmic", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Otic", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Rectal", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Vaginal", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Nasal", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Sublingual", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Dry Powder", "").trim().toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Metered Dose", "").trim().toLowerCase());
+
+		});
+
+		trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
+				.addKeywords(keywordMap.values()).build();
 
 		try {
 			InputStream in = getContext().getResourceAsStream("regExPatterns");
@@ -84,8 +145,8 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 	}
 
 	/**
-	 * Find and return medication attributes in text 
-	 * @param text String to extract attributes 
+	 * Find and return medication attributes in text
+	 * @param text String to extract attributes
 	 * @return List of Attribute classes
 	 */
 	private List<Attribute> getAttribute2(String text) {
@@ -100,16 +161,34 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 				groupNumber = Integer.parseInt(tokens[1]);
 			}
 			for(String regex : regExPat.get(tag)) {
-				Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
-				Matcher m = p.matcher(text);
-				while(m.find()) {
-					Attribute attr = new Attribute();
-					attr.tag = aTag; //w/o group number
-					attr.begin = m.start(groupNumber);
-					attr.end = m.end(groupNumber);
-					ret.add(attr);
+				if (!tag.contentEquals("form")) {	// override form matching
+					Pattern p = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+					Matcher m = p.matcher(text);
+					while (m.find()) {
+						Attribute attr = new Attribute();
+						attr.tag = aTag; //w/o group number
+						attr.text = m.group(groupNumber);
+						attr.begin = m.start(groupNumber);
+						attr.end = m.end(groupNumber);
+						ret.add(attr);
+					}
 				}
 			}
+
+			String sanitizedText = text
+					.replaceAll("\\s+", " ") // replace all whitespace characters with a space
+					.replaceAll("(\\p{Punct})", " ") // replace all punctuations with a space
+					.trim(); // remove leading and trailing whitespace
+
+			trie.parseText(sanitizedText).forEach(emit -> {
+				Attribute attr = new Attribute();
+				attr.tag = "form";
+				attr.text = emit.getKeyword();
+				attr.begin = emit.getStart();
+				attr.end = emit.getEnd() + 1;
+				ret.add(attr);
+			});
+
 		}
 
 		return ret;
