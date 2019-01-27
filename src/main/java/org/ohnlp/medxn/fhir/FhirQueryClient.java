@@ -42,14 +42,15 @@ public class FhirQueryClient {
                 resources = readCachedResources(className);
             }
         } else {
-            resources = queryResources(className);
             try {
+                Files.createDirectories(Paths.get(cacheFolder));
                 Files.createFile(path);
-                writeCachedResources(className, resources);
             } catch (IOException ioe) {
                 System.out.println(ioe.getClass());
                 System.out.println("ERROR: Check creating " + path.toString());
             }
+            resources = queryResources(className);
+            writeCachedResources(className, resources);
         }
 
         return resources;
@@ -123,6 +124,9 @@ public class FhirQueryClient {
             resources.forEach( resource -> bundle.addEntry().setResource(resource));
 
             context.newJsonParser().setPrettyPrint(true).encodeResourceToWriter(bundle, writer);
+
+            writer.flush();
+            writer.close();
 
         } catch (IOException ioe) {
             System.out.println(ioe.getClass());
