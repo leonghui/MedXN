@@ -283,5 +283,41 @@ public class Drug extends Annotation {
     if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_normRxName2 == null)
       jcasType.jcas.throwFeatMissing("normRxName2", "org.ohnlp.medxn.type.Drug");
     jcasType.ll_cas.ll_setStringValue(addr, ((Drug_Type)jcasType).casFeatCode_normRxName2, v);}
-  }
+
+
+  //*--------------*
+  //* Feature: formRxCui
+
+  /** getter for formRxCui - gets
+   * @generated */
+  public String getFormRxCui() {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_FormRxCui == null)
+      jcasType.jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
+    return jcasType.ll_cas.ll_getStringValue(addr, ((Drug_Type)jcasType).casFeatCode_FormRxCui);}
+
+  /** setter for formRxCui - sets
+   * @generated */
+  public void setFormRxCui(String v) {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_FormRxCui == null)
+      jcasType.jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
+    jcasType.ll_cas.ll_setStringValue(addr, ((Drug_Type)jcasType).casFeatCode_FormRxCui, v);}
+
+
+  //*--------------*
+  //* Feature: brand
+
+  /** getter for brand - gets
+   * @generated */
+  public String getBrand() {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_Brand == null)
+      jcasType.jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
+    return jcasType.ll_cas.ll_getStringValue(addr, ((Drug_Type)jcasType).casFeatCode_Brand);}
+
+  /** setter for brand - sets
+   * @generated */
+  public void setBrand(String v) {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_Brand == null)
+      jcasType.jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
+    jcasType.ll_cas.ll_setStringValue(addr, ((Drug_Type)jcasType).casFeatCode_Brand, v);}
+}
 

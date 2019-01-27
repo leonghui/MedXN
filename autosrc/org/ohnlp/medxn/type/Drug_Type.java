@@ -266,6 +266,40 @@ public class Drug_Type extends Annotation_Type {
 
 
 
+    /** @generated */
+    final Feature casFeat_FormRxCui;
+    /** @generated */
+    final int     casFeatCode_FormRxCui;
+    /** @generated */
+    public String getFormRxCui(int addr) {
+        if (featOkTst && casFeat_FormRxCui == null)
+            jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
+        return ll_cas.ll_getStringValue(addr, casFeatCode_FormRxCui);
+    }
+    /** @generated */
+    public void setFormRxCui(int addr, String v) {
+        if (featOkTst && casFeat_FormRxCui == null)
+            jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
+        ll_cas.ll_setStringValue(addr, casFeatCode_FormRxCui, v);}
+
+
+
+    /** @generated */
+    final Feature casFeat_Brand;
+    /** @generated */
+    final int     casFeatCode_Brand;
+    /** @generated */
+    public String getBrand(int addr) {
+        if (featOkTst && casFeat_Brand == null)
+            jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
+        return ll_cas.ll_getStringValue(addr, casFeatCode_Brand);
+    }
+    /** @generated */
+    public void setBrand(int addr, String v) {
+        if (featOkTst && casFeat_Brand == null)
+            jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
+        ll_cas.ll_setStringValue(addr, casFeatCode_Brand, v);}
+
 
 
     /** initialize variables to correspond with Cas Type and Features
@@ -314,7 +348,14 @@ public class Drug_Type extends Annotation_Type {
         casFeat_normRxName2 = jcas.getRequiredFeatureDE(casType, "normRxName2", "uima.cas.String", featOkTst);
         casFeatCode_normRxName2  = (null == casFeat_normRxName2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxName2).getCode();
 
-  }
+
+        casFeat_FormRxCui = jcas.getRequiredFeatureDE(casType, "formRxCui", "uima.cas.String", featOkTst);
+        casFeatCode_FormRxCui  = (null == casFeat_FormRxCui) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_FormRxCui).getCode();
+
+
+        casFeat_Brand = jcas.getRequiredFeatureDE(casType, "brand", "uima.cas.String", featOkTst);
+        casFeatCode_Brand  = (null == casFeat_Brand) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_Brand).getCode();
+    }
 }
 
 
