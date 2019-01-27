@@ -3,6 +3,8 @@ package org.ohnlp.medxn.fhir;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import org.hl7.fhir.dstu3.model.*;
 
 import java.io.BufferedReader;
@@ -74,7 +76,7 @@ public class FhirQueryClient {
                 if (response.getLink(Bundle.LINK_NEXT) != null) {
                     response = client.loadPage().next(response).execute();
                 } else {
-                response = null;
+                    response = null;
                 }
             } while (response != null);
 
@@ -144,5 +146,21 @@ public class FhirQueryClient {
 
     private Path getCachedFilePath(String className) {
         return Paths.get(cacheFolder + File.separator + className + ".json");
+    }
+
+    public Table<String, String, String> getAllDosageForms() {
+
+        // Data structure to store concept terms
+        // rxCui, tty, term
+        Table<String, String, String> doseFormTable = HashBasedTable.create();
+
+        List<Medication> medications = getAllMedications();
+
+        medications.forEach( medication -> {
+            Coding formCode = medication.getForm().getCodingFirstRep();
+            doseFormTable.put(formCode.getCode(), "DF", formCode.getDisplay());
+        });
+
+        return doseFormTable;
     }
 }
