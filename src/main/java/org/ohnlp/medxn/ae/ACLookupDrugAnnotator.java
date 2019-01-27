@@ -24,7 +24,6 @@
 package org.ohnlp.medxn.ae;
 
 import com.google.common.collect.*;
-import org.ahocorasick.trie.Emit;
 import org.ahocorasick.trie.Trie;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -36,13 +35,14 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
 import org.apache.uima.jcas.tcas.Annotation;
 import org.apache.uima.resource.ResourceInitializationException;
-import org.hl7.fhir.dstu3.model.*;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Extension;
 import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.typesystem.type.textspan.Segment;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -77,28 +77,27 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         // Build Aho-Corasick trie using IN and BN
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
 
-        List<Substance> substances = queryClient.getAllSubstances();
-
-        for (Substance substance: substances) {
-            for (Coding coding : substance.getCode().getCoding()) {
-                keywordMap.put(coding.getCode(), coding.getDisplay());
+        queryClient
+            .getAllSubstances()
+            .forEach( substance -> {
+            Coding coding = substance.getCode().getCodingFirstRep();
+                keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase());
                 conceptTable.put(coding.getCode(), "IN", coding.getDisplay());
-            }
-        }
+            });
 
-        List<Medication> medications = queryClient.getAllMedications();
-
-        for (Medication medication: medications) {
-            List<Extension> brandExtensions = medication
+        queryClient
+            .getAllMedications()
+            .forEach( medication -> {
+                List<Extension> brandExtensions = medication
                     .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand");
-            for (Extension brandExtension : brandExtensions) {
-                CodeableConcept brandName = (CodeableConcept) brandExtension.getValue();
-                String brandTerm = brandName.getCodingFirstRep().getDisplay();
-                String brandCode = brandName.getCodingFirstRep().getCode();
-                keywordMap.put(brandCode, brandTerm);
-                conceptTable.put(brandCode, "BN", brandTerm);
-            }
-        }
+                brandExtensions.forEach( brandExtension -> {
+                    CodeableConcept brandName = (CodeableConcept) brandExtension.getValue();
+                    String brandTerm = brandName.getCodingFirstRep().getDisplay();
+                    String brandCode = brandName.getCodingFirstRep().getCode();
+                    keywordMap.put(brandCode, brandTerm.toLowerCase());
+                    conceptTable.put(brandCode, "BN", brandTerm);
+                });
+            });
 
         trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
                 .addKeywords(keywordMap.values()).build();
@@ -127,31 +126,36 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         .replaceAll("(\\p{Punct})", " "); // replace all punctuations with a space
                 //		.replaceAll("(?<=\\w+)(\\p{Punct})", " "); // replace all punctuations after a word character with a space
 
-                Collection<Emit> sentEmits = trie.parseText(sentText);
+                trie.parseText(sentText)
+                    .forEach( emit -> {
+                        String rxCui = keywordMap.entries()
+                                .stream()
+                                .filter(entry -> entry.getValue().contentEquals(emit.getKeyword()))
+                                .map(Map.Entry::getKey)
+                                .findFirst()
+                                .orElse(null);
 
-                for (Emit emit : sentEmits) {
-                    for (Map.Entry<String, String> entry : keywordMap.entries()) {
-                        if (entry.getValue().toLowerCase().contentEquals(emit.getKeyword())) {
-                            String rxCui = entry.getKey();
+                        if (rxCui != null && !conceptTable.row(rxCui).isEmpty()) {
 
                             int begin = sent.getBegin() + emit.getStart();
                             int end = sent.getBegin() + emit.getEnd() + 1;
 
                             ConceptMention neAnnot = new ConceptMention(jCas, begin, end);
 
-                            Collection<String> terms = conceptTable.row(rxCui).values();
-
                             BiMap<String, String> ttyMap = HashBiMap.create(conceptTable.row(rxCui));
 
-                            for (String term : terms) {
-                                neAnnot.setNormTarget(term); // Preferred Term
-                                neAnnot.setSemGroup(rxCui + "::" + ttyMap.inverse().get(term)); // RxCUI::TermType
-                                neAnnot.setSentence(sent);
-                                neAnnot.addToIndexes();
-                            }
+                            conceptTable
+                                    .row(rxCui)
+                                    .values()
+                                    .forEach(term -> {
+                                        neAnnot.setNormTarget(term); // Preferred Term
+                                        neAnnot.setSemGroup(rxCui + "::" + ttyMap.inverse().get(term)); // RxCUI::TermType
+                                        neAnnot.setSentence(sent);
+                                        neAnnot.addToIndexes();
+                                    });
                         }
-                    }
-                }
+
+                    });
             }
         }
     }
