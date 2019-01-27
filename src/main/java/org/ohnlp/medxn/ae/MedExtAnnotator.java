@@ -1,4 +1,4 @@
-/*******************************************************************************
+/*
  * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
  *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
  *  triple-shield Mayo logo are trademarks and service marks of MFMER.
@@ -20,7 +20,7 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and 
  *  limitations under the License. 
- *******************************************************************************/
+ */
 package org.ohnlp.medxn.ae;
 
 import java.io.BufferedReader;
@@ -36,7 +36,6 @@ import java.util.Set;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
-import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
 import org.apache.uima.jcas.cas.FSArray;
@@ -56,21 +55,21 @@ import org.ohnlp.medxn.type.MedAttr;
 public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 	class MedDesc {
 		ConceptMention med;
-		List<MedAttr> attrs = new ArrayList<MedAttr>();
+		final List<MedAttr> attrs = new ArrayList<>();
 	}
 	
-	Set<String> bogusMed;
+	private Set<String> bogusMed;
 	
 	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
 		super.initialize(uimaContext);
-		bogusMed = new HashSet<String>();
+		bogusMed = new HashSet<>();
 		
 		try {
 			InputStream in = getContext().getResourceAsStream("falseMedDict");
 			if(in!=null) {
 				try {
 					BufferedReader fin = new BufferedReader(new InputStreamReader(in));
-					String line = "";
+					String line;
 
 					while((line = fin.readLine())!= null) {
 						if( line.startsWith("#") 
@@ -88,10 +87,10 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 		}
 	}
 	
-	public void process(JCas jcas) throws AnalysisEngineProcessException {
+	public void process(JCas jcas) {
 		JFSIndexRepository indexes = jcas.getJFSIndexRepository();
 		Iterator<?> cmItr= indexes.getAnnotationIndex(ConceptMention.type).iterator(); //all drugs		
-		List<ConceptMention> drugs = new ArrayList<ConceptMention>();
+		List<ConceptMention> drugs = new ArrayList<>();
 
 		//Get the list of drugs - if drug overlaps, use the longest one
 		while(cmItr.hasNext()) {
@@ -104,7 +103,7 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 			if(drugs.size()==0) drugs.add(cm);
 			else {        			
 				for(int i=0; i<drugs.size(); i++) {
-					ConceptMention x = (ConceptMention) drugs.get(i);
+					ConceptMention x = drugs.get(i);
 					int condition = contains(cm.getBegin(), cm.getEnd(), 
 							x.getBegin(), x.getEnd());
 					if(condition==1) {
@@ -213,7 +212,7 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 		}		
 	}
 	
-	protected void addToJCas(JCas jcas, MedDesc md, int[] window) {
+	private void addToJCas(JCas jcas, MedDesc md, int[] window) {
 		Drug d = new Drug(jcas);
 		d.setName(md.med);
 		d.setBegin(md.med.getBegin());
@@ -248,17 +247,17 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 	 * @param nextDrugBegin
 	 * @return
 	 */
-	protected int[] setWindow(JCas jcas, ConceptMention drug, int nextDrugBegin) {
+	private int[] setWindow(JCas jcas, ConceptMention drug, int nextDrugBegin) {
 		JFSIndexRepository indexes = jcas.getJFSIndexRepository();
 		Iterator<?> senItr= indexes.getAnnotationIndex(Sentence.type).iterator();		
 	//	String[] str = drug.getSentence().split("::");
-		Sentence drugsen=(Sentence) drug.getSentence();
-		int drugSenBegin = drugsen.getBegin();  
-		int drugSenEnd = drugsen.getEnd();
+		Sentence drugSentence= drug.getSentence();
+		int drugSentenceBegin = drugSentence.getBegin();  
+		int drugSentenceEnd = drugSentence.getEnd();
 		int[] ret = {-1, -1};
 		
 		ret[0] = drug.getBegin();
-		ret[1] = drugSenEnd;
+		ret[1] = drugSentenceEnd;
 
 		int InstructionBegin = -1;
 		int IndicationBegin = -1;
@@ -282,14 +281,14 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 		//and reset a window (eg, IV Lasix, one dose of IV Lasix)		
 		//TODO currently simply expand -20 before a given drug or 
 		//begin of the sentence and so might need more sophisticated rules
-		String text = jcas.getDocumentText().substring(drugSenBegin, drug.getBegin());
+		String text = jcas.getDocumentText().substring(drugSentenceBegin, drug.getBegin());
 		if(text.matches(".*\\s+IV\\s+") 
 				|| text.matches(".*\\s+of\\s+(\\S+\\s+){0,1}")) {	
 			int begin = drug.getBegin()-20;
-			ret[0] = begin<drugSenBegin ? drugSenBegin : begin;
+			ret[0] = begin<drugSentenceBegin ? drugSentenceBegin : begin;
 		}		
 		
-		//---- TODO: DON'T USE THIS CONDICTION IF NOT MAYO DATA
+		//---- TODO: DON'T USE THIS CONDITION IF NOT MAYO DATA
 		//NOTE THAT this is specific for Mayo Current Medication section
 		//If there is newline within a window and it does not start with 
 		//Instruction or Indication, set the end offset newline 
@@ -312,14 +311,10 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 	 * @param md
 	 * @return true if potentially false medication
 	 */
-	protected boolean isFalseMed1(String med) {		
+	private boolean isFalseMed1(String med) {		
 		if(bogusMed.contains(med.toLowerCase().replaceAll("\\W", " "))) {
-			//starts with a lower case
-			if(Character.isLowerCase(med.charAt(0))) 
-				return true;			
-			//ad hoc
-			if(med.equals("Ms"))
-				return true;
+			//starts with a lower case OR ad hoc
+			return Character.isLowerCase(med.charAt(0)) || med.equals("Ms");
 		}
 		
 		return false;
@@ -330,14 +325,13 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 	 * @param md
 	 * @return true if potentially false medication
 	 */
-	protected boolean isFalseMed2(MedDesc md) {
+	private boolean isFalseMed2(MedDesc md) {
 		String medStr = md.med.getCoveredText();
 		
 		if(bogusMed.contains(medStr.toLowerCase().replaceAll("\\W", " "))) {			
 			//no attribute
 			//TODO update because some appear w/o attribute 
-			if(md.attrs.size()==0)
-				return true;			
+			return md.attrs.size() == 0;
 		}
 		
 		return false;
@@ -348,7 +342,7 @@ public class MedExtAnnotator extends JCasAnnotator_ImplBase {
 	 * Returns 2 if 2 contains or equal to 1
 	 * Returns 0 otherwise
 	 */
-	protected int contains(int b1, int e1, int b2, int e2) {
+	private int contains(int b1, int e1, int b2, int e2) {
 		if(b1<=b2 &&  e1>=e2) return 1;
 		else if(b2<=b1 &&  e2>=e1) return 2;
 		else return 0;
