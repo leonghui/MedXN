@@ -89,17 +89,13 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 			keywordMap.put(rxCui, term.toLowerCase());
 
 			// enrich keyword map with common synonyms
-			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Solution", "Solution").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Suspension", "Suspension").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Tablet", "Tab").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Oral Capsule", "Cap").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Injection", "Inj").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Injectable", "Inj").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
 
 			// enrich keyword map with common homonyms
 			keywordMap.put(rxCui, term.replaceAll("(?i)Oral", "").trim().toLowerCase());
