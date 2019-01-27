@@ -5,6 +5,13 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import org.hl7.fhir.dstu3.model.*;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +19,7 @@ public class FhirQueryClient {
     private final FhirContext context = FhirContext.forDstu3();
     private final String FHIR_SERVER_URL = "http://<server>:<port>/baseDstu3";
     private final IGenericClient client = context.newRestfulGenericClient(FHIR_SERVER_URL);
+    private final String cacheFolder = System.getProperty("user.dir") + File.separator + "tmp";
 
     private FhirQueryClient() {
         int TIMEOUT_SEC = 60;
@@ -23,6 +31,30 @@ public class FhirQueryClient {
     }
 
     private List<? extends Resource> getAllResources(String className) {
+        List<? extends Resource> resources = new ArrayList<>();
+
+        Path path = getCachedFilePath(className);
+
+        if (Files.exists(path)) {
+            if (Files.isReadable(path)) {
+                resources = readCachedResources(className);
+            }
+        } else {
+            resources = queryResources(className);
+            try {
+                Files.createFile(path);
+                writeCachedResources(className, resources);
+            } catch (IOException ioe) {
+                System.out.println(ioe.getClass());
+                System.out.println("ERROR: Check creating " + path.toString());
+            }
+        }
+
+        return resources;
+
+    }
+
+    private List<? extends Resource> queryResources(String className) {
         List<Resource> resources = new ArrayList<>();
 
         try {
@@ -42,7 +74,7 @@ public class FhirQueryClient {
                 if (response.getLink(Bundle.LINK_NEXT) != null) {
                     response = client.loadPage().next(response).execute();
                 } else {
-                    response = null;
+                response = null;
                 }
             } while (response != null);
 
@@ -52,8 +84,48 @@ public class FhirQueryClient {
             System.out.println("Please check FHIR_SERVER_URL, increase TIMEOUT_SEC, or reduce QUERY_SIZE.");
         }
 
-        return resources;
 
+        return resources;
+    }
+
+
+    private List<? extends Resource> readCachedResources(String className) {
+        List<Resource> resources = new ArrayList<>();
+
+        Path path = getCachedFilePath(className);
+
+        try {
+            BufferedReader reader = Files.newBufferedReader(path);
+
+            Bundle bundle = context.newJsonParser().parseResource(Bundle.class, reader);
+            bundle.getEntry().forEach(entry -> resources.add(entry.getResource()));
+            reader.close();
+
+        } catch (IOException ioe) {
+            System.out.println(ioe.getClass());
+            System.out.println("ERROR: Check reading from " + path.toString());
+        }
+
+        return resources;
+    }
+
+    private void writeCachedResources(String className, List<? extends Resource> resources) {
+
+        Path path = getCachedFilePath(className);
+
+        try {
+            BufferedWriter writer = Files.newBufferedWriter(path);
+
+            Bundle bundle = new Bundle();
+
+            resources.forEach( resource -> bundle.addEntry().setResource(resource));
+
+            context.newJsonParser().setPrettyPrint(true).encodeResourceToWriter(bundle, writer);
+
+        } catch (IOException ioe) {
+            System.out.println(ioe.getClass());
+            System.out.println("ERROR: Check writing to " + path.toString() );
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -68,5 +140,9 @@ public class FhirQueryClient {
 
     public String getFhirServerUrl() {
         return FHIR_SERVER_URL;
+    }
+
+    private Path getCachedFilePath(String className) {
+        return Paths.get(cacheFolder + File.separator + className + ".json");
     }
 }
