@@ -23,26 +23,75 @@
  */
 package org.ohnlp.medxn.ae;
 
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Table;
+import org.ahocorasick.trie.Trie;
+import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.tcas.Annotation;
+import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medtagger.type.ConceptMention;
+import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.MedAttr;
 
+import java.util.*;
+
 /**
  * Normalize medication description string same as the RxNorm standard
- * @author Sunghwan Sohn
+ * @author Sunghwan Sohn, Leong Hui Wong
  */
 public class MedNormAnnotator extends JCasAnnotator_ImplBase {
+
+	// Data structure to store keywords
+	// rxCui, keyword
+	private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
+
+	// Data structure to store concept terms
+	// rxCui, tty, term
+	private Table<String, String, String> conceptTable;
+
+	// data structure that stores the TRIE
+	private Trie trie;
+
+	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
+		super.initialize(uimaContext);
+		FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
+
+		conceptTable = queryClient.getAllDosageForms();
+
+		conceptTable.rowKeySet().forEach(rxCui -> {
+			String term = conceptTable.get(rxCui, "DF");
+
+			keywordMap.put(rxCui, term.toLowerCase());
+
+			// enrich keyword map with common synonyms
+			keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
+			keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
+
+		});
+
+		trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
+				.addKeywords(keywordMap.values()).build();
+
+	}
+
 	public void process(JCas jcas) {
 		JFSIndexRepository indexes = jcas.getJFSIndexRepository();
 
 		//Get the list of drugs - if drug overlaps, use the longest one
 		for (Annotation annotation : indexes.getAnnotationIndex(Drug.type)) {
 			Drug d = (Drug) annotation;
+			d.setFormRxCui(lookupDoseForm(d.getAttrs()));
 			d.setNormDrug(normalizeDrug(d.getName(), d.getAttrs()));
 		}
 
@@ -154,5 +203,36 @@ public class MedNormAnnotator extends JCasAnnotator_ImplBase {
 		normDrug = normDrug.toLowerCase().replaceAll("\\s{2,}", " ");
 
 		return normDrug;
+	}
+
+	private String getDoseFormTerm(String rxCui) {
+		return conceptTable.get(rxCui, "DF");
+	}
+
+	private String lookupDoseForm(FSArray attributes) {
+		Set<String> formRxCuis = new LinkedHashSet<>();
+
+		attributes.forEach( attribute -> {
+			MedAttr medAttribute = (MedAttr) attribute;
+			if (medAttribute.getTag().contentEquals("form")) {
+				String doseFormText = medAttribute.getCoveredText();
+
+				String sanitizedDoseFormText = doseFormText
+						.replaceAll("\\s+", " ") // replace all whitespace characters with a space
+						.replaceAll("(\\p{Punct})", " ") // replace all punctuations with a space
+						.trim(); // remove leading and trailing whitespace;
+
+				trie.parseText(sanitizedDoseFormText).forEach(emit ->
+						keywordMap.entries()
+								.stream()
+								.filter(entry -> entry.getValue().contentEquals(emit.getKeyword()))
+								.map(Map.Entry::getKey)
+								.findFirst().ifPresent(formRxCuis::add));
+			}
+		});
+
+		Comparator<String> byTermLength = Comparator.comparingInt(cui -> getDoseFormTerm(cui).length());
+
+		return formRxCuis.stream().max(byTermLength).orElse(null);
 	}
 }
