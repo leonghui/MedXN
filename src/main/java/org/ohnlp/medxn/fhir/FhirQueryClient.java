@@ -10,14 +10,16 @@ import java.util.List;
 
 public class FhirQueryClient {
     private final FhirContext context = FhirContext.forDstu3();
-    private IGenericClient client = null;
     private final String FHIR_SERVER_URL = "http://<server>:<port>/baseDstu3";
+    private final IGenericClient client = context.newRestfulGenericClient(FHIR_SERVER_URL);
 
-    public void initialize() {
+    private FhirQueryClient() {
         int TIMEOUT_SEC = 60;
-
         context.getRestfulClientFactory().setSocketTimeout(TIMEOUT_SEC * 1000);
-        client = context.newRestfulGenericClient(FHIR_SERVER_URL);
+    }
+
+    public static FhirQueryClient createFhirQueryClient() {
+        return new FhirQueryClient();
     }
 
     private List<? extends Resource> getAllResources(String className) {
@@ -46,7 +48,8 @@ public class FhirQueryClient {
 
         } catch (FhirClientConnectionException eof) {
             System.out.println(eof.getClass());
-            System.out.println("ERROR: FHIR query timed-out, please increase TIMEOUT_SEC or reduce QUERY_SIZE.");
+            System.out.println("ERROR: FHIR endpoint unreachable or query timed-out.");
+            System.out.println("Please check FHIR_SERVER_URL, increase TIMEOUT_SEC, or reduce QUERY_SIZE.");
         }
 
         return resources;

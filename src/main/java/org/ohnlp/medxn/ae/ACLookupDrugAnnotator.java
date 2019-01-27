@@ -75,8 +75,8 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         Configurator.setLevel(logger.getName(), Level.DEBUG);
 
         // Build Aho-Corasick trie using IN and BN
-        FhirQueryClient queryClient = new FhirQueryClient();
-        queryClient.initialize();
+        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
+
         List<Substance> substances = queryClient.getAllSubstances();
 
         for (Substance substance: substances) {
