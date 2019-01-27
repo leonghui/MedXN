@@ -47,7 +47,7 @@ public class FhirQueryClient {
                 Files.createFile(path);
             } catch (IOException ioe) {
                 System.out.println(ioe.getClass());
-                System.out.println("ERROR: Check creating " + path.toString());
+                System.out.println("ERROR: Creating " + path.toString());
             }
             resources = queryResources(className);
             writeCachedResources(className, resources);
@@ -72,7 +72,6 @@ public class FhirQueryClient {
             do {
                 for (Bundle.BundleEntryComponent entry : response.getEntry()) {
                     resources.add(entry.getResource());
-
                 }
                 if (response.getLink(Bundle.LINK_NEXT) != null) {
                     response = client.loadPage().next(response).execute();
@@ -86,7 +85,6 @@ public class FhirQueryClient {
             System.out.println("ERROR: FHIR endpoint unreachable or query timed-out.");
             System.out.println("Please check FHIR_SERVER_URL, increase TIMEOUT_SEC, or reduce QUERY_SIZE.");
         }
-
 
         return resources;
     }
@@ -106,7 +104,7 @@ public class FhirQueryClient {
 
         } catch (IOException ioe) {
             System.out.println(ioe.getClass());
-            System.out.println("ERROR: Check reading from " + path.toString());
+            System.out.println("ERROR: Reading from " + path.toString());
         }
 
         return resources;
@@ -130,7 +128,7 @@ public class FhirQueryClient {
 
         } catch (IOException ioe) {
             System.out.println(ioe.getClass());
-            System.out.println("ERROR: Check writing to " + path.toString() );
+            System.out.println("ERROR: Writing to " + path.toString() );
         }
     }
 
