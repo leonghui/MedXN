@@ -123,8 +123,9 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
                 String sentText = sent.getCoveredText().toLowerCase()
                         .replaceAll("\\s+", " ") // replace all whitespace characters with a space
-                        .replaceAll("(\\p{Punct})", " "); // replace all punctuations with a space
-                //		.replaceAll("(?<=\\w+)(\\p{Punct})", " "); // replace all punctuations after a word character with a space
+                        .replaceAll("(\\p{Punct})", " ") // replace all punctuations with a space
+                        //		.replaceAll("(?<=\\w+)(\\p{Punct})", " "); // replace all punctuations after a word character with a space
+                        .trim();
 
                 trie.parseText(sentText)
                         .forEach( emit -> {
