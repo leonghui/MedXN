@@ -26,8 +26,10 @@ package org.ohnlp.medxn.ae;
 import com.google.common.collect.*;
 import org.ahocorasick.trie.Emit;
 import org.ahocorasick.trie.Trie;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
@@ -62,7 +64,7 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final Table<String, String, String> conceptTable = HashBasedTable.create();
 
     // LOG4J logger based on class name
-    private final Logger logger = Logger.getLogger(getClass().getName());
+    private final Logger logger = LogManager.getLogger(getClass().getName());
 
     // data structure that stores the TRIE
     private Trie trie;
@@ -70,7 +72,7 @@ public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     @Override
     public void initialize(UimaContext aContext) throws ResourceInitializationException {
         super.initialize(aContext);
-        logger.setLevel(Level.DEBUG);
+        Configurator.setLevel(logger.getName(), Level.DEBUG);
 
         // Build Aho-Corasick trie using IN and BN
         FhirQueryClient queryClient = new FhirQueryClient();
