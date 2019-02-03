@@ -22,7 +22,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-/* First created by JCasGen Sun Feb 03 22:13:01 SGT 2019 */
+/* First created by JCasGen Mon Feb 04 00:02:11 SGT 2019 */
 package org.ohnlp.medxn.type;
 
 import org.apache.uima.jcas.JCas; 
@@ -35,7 +35,7 @@ import org.apache.uima.jcas.tcas.Annotation;
 
 
 /** 
- * Updated by JCasGen Sun Feb 03 22:13:01 SGT 2019
+ * Updated by JCasGen Mon Feb 04 00:02:11 SGT 2019
  * XML source: /medxn/src/main/resources/org/ohnlp/medxn/types/MedXNTypes.xml
  * @generated */
 public class Drug extends Annotation {
@@ -169,8 +169,8 @@ public class Drug extends Annotation {
   //*--------------*
   //* Feature: normDrug
 
-  /** getter for normDrug - gets normalized to RxNorm format: 
-BN or IN + " " + strength + " " + form
+  /** getter for normDrug - gets normalized to RxNorm format:
+                        BN or IN + " " + strength + " " + form
    * @generated
    * @return value of the feature 
    */
@@ -179,8 +179,8 @@ BN or IN + " " + strength + " " + form
       jcasType.jcas.throwFeatMissing("normDrug", "org.ohnlp.medxn.type.Drug");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Drug_Type)jcasType).casFeatCode_normDrug);}
     
-  /** setter for normDrug - sets normalized to RxNorm format: 
-BN or IN + " " + strength + " " + form 
+  /** setter for normDrug - sets normalized to RxNorm format:
+                        BN or IN + " " + strength + " " + form 
    * @generated
    * @param v value to set into the feature 
    */
@@ -345,31 +345,31 @@ BN or IN + " " + strength + " " + form
    
     
   //*--------------*
-  //* Feature: formRxCui
+  //* Feature: form
 
-  /** getter for formRxCui - gets 
+  /** getter for form - gets Stores a code that corresponds to Medication.form (FHIR STU3)
    * @generated
    * @return value of the feature 
    */
-  public String getFormRxCui() {
-    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_formRxCui == null)
-      jcasType.jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
-    return jcasType.ll_cas.ll_getStringValue(addr, ((Drug_Type)jcasType).casFeatCode_formRxCui);}
+  public String getForm() {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_form == null)
+      jcasType.jcas.throwFeatMissing("form", "org.ohnlp.medxn.type.Drug");
+    return jcasType.ll_cas.ll_getStringValue(addr, ((Drug_Type)jcasType).casFeatCode_form);}
     
-  /** setter for formRxCui - sets  
+  /** setter for form - sets Stores a code that corresponds to Medication.form (FHIR STU3) 
    * @generated
    * @param v value to set into the feature 
    */
-  public void setFormRxCui(String v) {
-    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_formRxCui == null)
-      jcasType.jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
-    jcasType.ll_cas.ll_setStringValue(addr, ((Drug_Type)jcasType).casFeatCode_formRxCui, v);}    
+  public void setForm(String v) {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_form == null)
+      jcasType.jcas.throwFeatMissing("form", "org.ohnlp.medxn.type.Drug");
+    jcasType.ll_cas.ll_setStringValue(addr, ((Drug_Type)jcasType).casFeatCode_form, v);}    
    
     
   //*--------------*
   //* Feature: brand
 
-  /** getter for brand - gets 
+  /** getter for brand - gets Stores a term that corresponds to Medication.brand extension (FHIR STU3)
    * @generated
    * @return value of the feature 
    */
@@ -378,7 +378,7 @@ BN or IN + " " + strength + " " + form
       jcasType.jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Drug_Type)jcasType).casFeatCode_brand);}
     
-  /** setter for brand - sets  
+  /** setter for brand - sets Stores a term that corresponds to Medication.brand extension (FHIR STU3) 
    * @generated
    * @param v value to set into the feature 
    */
@@ -386,6 +386,50 @@ BN or IN + " " + strength + " " + form
     if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_brand == null)
       jcasType.jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
     jcasType.ll_cas.ll_setStringValue(addr, ((Drug_Type)jcasType).casFeatCode_brand, v);}    
+   
+    
+  //*--------------*
+  //* Feature: ingredients
+
+  /** getter for ingredients - gets 
+   * @generated
+   * @return value of the feature 
+   */
+  public FSArray getIngredients() {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_ingredients == null)
+      jcasType.jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    return (FSArray)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefValue(addr, ((Drug_Type)jcasType).casFeatCode_ingredients)));}
+    
+  /** setter for ingredients - sets  
+   * @generated
+   * @param v value to set into the feature 
+   */
+  public void setIngredients(FSArray v) {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_ingredients == null)
+      jcasType.jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    jcasType.ll_cas.ll_setRefValue(addr, ((Drug_Type)jcasType).casFeatCode_ingredients, jcasType.ll_cas.ll_getFSRef(v));}    
+    
+  /** indexed getter for ingredients - gets an indexed value - 
+   * @generated
+   * @param i index in the array to get
+   * @return value of the element at index i 
+   */
+  public Ingredient getIngredients(int i) {
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_ingredients == null)
+      jcasType.jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    jcasType.jcas.checkArrayBounds(jcasType.ll_cas.ll_getRefValue(addr, ((Drug_Type)jcasType).casFeatCode_ingredients), i);
+    return (Ingredient)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefArrayValue(jcasType.ll_cas.ll_getRefValue(addr, ((Drug_Type)jcasType).casFeatCode_ingredients), i)));}
+
+  /** indexed setter for ingredients - sets an indexed value - 
+   * @generated
+   * @param i index in the array to set
+   * @param v value to set into the array 
+   */
+  public void setIngredients(int i, Ingredient v) { 
+    if (Drug_Type.featOkTst && ((Drug_Type)jcasType).casFeat_ingredients == null)
+      jcasType.jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    jcasType.jcas.checkArrayBounds(jcasType.ll_cas.ll_getRefValue(addr, ((Drug_Type)jcasType).casFeatCode_ingredients), i);
+    jcasType.ll_cas.ll_setRefArrayValue(jcasType.ll_cas.ll_getRefValue(addr, ((Drug_Type)jcasType).casFeatCode_ingredients), i, jcasType.ll_cas.ll_getFSRef(v));}
   }
 
     

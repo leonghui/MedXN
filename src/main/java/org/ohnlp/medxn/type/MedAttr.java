@@ -22,7 +22,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-/* First created by JCasGen Sun Feb 03 22:13:01 SGT 2019 */
+/* First created by JCasGen Mon Feb 04 00:02:11 SGT 2019 */
 package org.ohnlp.medxn.type;
 
 import org.apache.uima.jcas.JCas; 
@@ -33,7 +33,7 @@ import org.apache.uima.jcas.tcas.Annotation;
 
 
 /** Medication name and attributes that simply hold string and offset
- * Updated by JCasGen Sun Feb 03 22:13:01 SGT 2019
+ * Updated by JCasGen Mon Feb 04 00:02:11 SGT 2019
  * XML source: /medxn/src/main/resources/org/ohnlp/medxn/types/MedXNTypes.xml
  * @generated */
 public class MedAttr extends Annotation {

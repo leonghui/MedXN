@@ -22,7 +22,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-/* First created by JCasGen Sun Feb 03 22:13:01 SGT 2019 */
+/* First created by JCasGen Mon Feb 04 00:02:11 SGT 2019 */
 package org.ohnlp.medxn.type;
 
 import org.apache.uima.jcas.JCas;
@@ -32,7 +32,7 @@ import org.apache.uima.cas.Type;
 import org.apache.uima.jcas.tcas.Annotation_Type;
 
 /** lookup window for drug attributes
- * Updated by JCasGen Sun Feb 03 22:13:01 SGT 2019
+ * Updated by JCasGen Mon Feb 04 00:02:11 SGT 2019
  * @generated */
 public class LookupWindow_Type extends Annotation_Type {
   /** @generated */

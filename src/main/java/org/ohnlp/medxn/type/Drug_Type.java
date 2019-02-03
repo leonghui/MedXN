@@ -22,7 +22,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-/* First created by JCasGen Sun Feb 03 22:13:01 SGT 2019 */
+/* First created by JCasGen Mon Feb 04 00:02:11 SGT 2019 */
 package org.ohnlp.medxn.type;
 
 import org.apache.uima.jcas.JCas;
@@ -34,7 +34,7 @@ import org.apache.uima.cas.Feature;
 import org.apache.uima.jcas.tcas.Annotation_Type;
 
 /** 
- * Updated by JCasGen Sun Feb 03 22:13:01 SGT 2019
+ * Updated by JCasGen Mon Feb 04 00:02:11 SGT 2019
  * @generated */
 public class Drug_Type extends Annotation_Type {
   /** @generated */
@@ -313,26 +313,26 @@ public class Drug_Type extends Annotation_Type {
   
  
   /** @generated */
-  final Feature casFeat_formRxCui;
+  final Feature casFeat_form;
   /** @generated */
-  final int     casFeatCode_formRxCui;
+  final int     casFeatCode_form;
   /** @generated
    * @param addr low level Feature Structure reference
    * @return the feature value 
    */ 
-  public String getFormRxCui(int addr) {
-        if (featOkTst && casFeat_formRxCui == null)
-      jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
-    return ll_cas.ll_getStringValue(addr, casFeatCode_formRxCui);
+  public String getForm(int addr) {
+        if (featOkTst && casFeat_form == null)
+      jcas.throwFeatMissing("form", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_form);
   }
   /** @generated
    * @param addr low level Feature Structure reference
    * @param v value to set 
    */    
-  public void setFormRxCui(int addr, String v) {
-        if (featOkTst && casFeat_formRxCui == null)
-      jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
-    ll_cas.ll_setStringValue(addr, casFeatCode_formRxCui, v);}
+  public void setForm(int addr, String v) {
+        if (featOkTst && casFeat_form == null)
+      jcas.throwFeatMissing("form", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_form, v);}
     
   
  
@@ -359,6 +359,57 @@ public class Drug_Type extends Annotation_Type {
     ll_cas.ll_setStringValue(addr, casFeatCode_brand, v);}
     
   
+ 
+  /** @generated */
+  final Feature casFeat_ingredients;
+  /** @generated */
+  final int     casFeatCode_ingredients;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public int getIngredients(int addr) {
+        if (featOkTst && casFeat_ingredients == null)
+      jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getRefValue(addr, casFeatCode_ingredients);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setIngredients(int addr, int v) {
+        if (featOkTst && casFeat_ingredients == null)
+      jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setRefValue(addr, casFeatCode_ingredients, v);}
+    
+   /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @return value at index i in the array 
+   */
+  public int getIngredients(int addr, int i) {
+        if (featOkTst && casFeat_ingredients == null)
+      jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    if (lowLevelTypeChecks)
+      return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_ingredients), i, true);
+    jcas.checkArrayBounds(ll_cas.ll_getRefValue(addr, casFeatCode_ingredients), i);
+	return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_ingredients), i);
+  }
+   
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @param v value to set
+   */ 
+  public void setIngredients(int addr, int i, int v) {
+        if (featOkTst && casFeat_ingredients == null)
+      jcas.throwFeatMissing("ingredients", "org.ohnlp.medxn.type.Drug");
+    if (lowLevelTypeChecks)
+      ll_cas.ll_setRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_ingredients), i, v, true);
+    jcas.checkArrayBounds(ll_cas.ll_getRefValue(addr, casFeatCode_ingredients), i);
+    ll_cas.ll_setRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_ingredients), i, v);
+  }
+ 
 
 
 
@@ -412,12 +463,16 @@ public class Drug_Type extends Annotation_Type {
     casFeatCode_normRxName2  = (null == casFeat_normRxName2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxName2).getCode();
 
  
-    casFeat_formRxCui = jcas.getRequiredFeatureDE(casType, "formRxCui", "uima.cas.String", featOkTst);
-    casFeatCode_formRxCui  = (null == casFeat_formRxCui) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_formRxCui).getCode();
+    casFeat_form = jcas.getRequiredFeatureDE(casType, "form", "uima.cas.String", featOkTst);
+    casFeatCode_form  = (null == casFeat_form) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_form).getCode();
 
  
     casFeat_brand = jcas.getRequiredFeatureDE(casType, "brand", "uima.cas.String", featOkTst);
     casFeatCode_brand  = (null == casFeat_brand) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_brand).getCode();
+
+ 
+    casFeat_ingredients = jcas.getRequiredFeatureDE(casType, "ingredients", "uima.cas.FSArray", featOkTst);
+    casFeatCode_ingredients  = (null == casFeat_ingredients) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_ingredients).getCode();
 
   }
 }
