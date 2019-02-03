@@ -1,29 +1,28 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:25 SGT 2019 */
 package org.ohnlp.typesystem.type.structured;
 
 import org.apache.uima.jcas.JCas; 
@@ -34,8 +33,8 @@ import org.apache.uima.jcas.cas.TOP;
 
 
 /** Demographic information about the patient in a clinical document.  Typically comes from structured metadata.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
- * XML source: /MedXN_1.0/descsrc/org/ohnlp/medxn/types/MedXNTypes.xml
+ * Updated by JCasGen Sun Feb 03 22:13:25 SGT 2019
+ * XML source: /medxn/src/main/resources/org/ohnlp/medtagger/types/MedTaggerTypes.xml
  * @generated */
 public class Demographics extends TOP {
   /** @generated
@@ -48,7 +47,9 @@ public class Demographics extends TOP {
    */
   @SuppressWarnings ("hiding")
   public final static int type = typeIndexID;
-  /** @generated  */
+  /** @generated
+   * @return index of the type  
+   */
   @Override
   public              int getTypeIndexID() {return typeIndexID;}
  
@@ -57,22 +58,30 @@ public class Demographics extends TOP {
   protected Demographics() {/* intentionally empty block */}
     
   /** Internal - constructor used by generator 
-   * @generated */
+   * @generated
+   * @param addr low level Feature Structure reference
+   * @param type the type of this Feature Structure 
+   */
   public Demographics(int addr, TOP_Type type) {
     super(addr, type);
     readObject();
   }
   
-  /** @generated */
+  /** @generated
+   * @param jcas JCas to which this Feature Structure belongs 
+   */
   public Demographics(JCas jcas) {
     super(jcas);
     readObject();   
   } 
 
-  /** <!-- begin-user-doc -->
-    * Write your own initialization here
-    * <!-- end-user-doc -->
-  @generated modifiable */
+  /** 
+   * <!-- begin-user-doc -->
+   * Write your own initialization here
+   * <!-- end-user-doc -->
+   *
+   * @generated modifiable 
+   */
   private void readObject() {/*default - does nothing empty block */}
      
  
@@ -81,14 +90,18 @@ public class Demographics extends TOP {
   //* Feature: birthDate
 
   /** getter for birthDate - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getBirthDate() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_birthDate == null)
       jcasType.jcas.throwFeatMissing("birthDate", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_birthDate);}
     
   /** setter for birthDate - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setBirthDate(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_birthDate == null)
       jcasType.jcas.throwFeatMissing("birthDate", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -99,14 +112,18 @@ public class Demographics extends TOP {
   //* Feature: deathDate
 
   /** getter for deathDate - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getDeathDate() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_deathDate == null)
       jcasType.jcas.throwFeatMissing("deathDate", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_deathDate);}
     
   /** setter for deathDate - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setDeathDate(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_deathDate == null)
       jcasType.jcas.throwFeatMissing("deathDate", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -117,14 +134,18 @@ public class Demographics extends TOP {
   //* Feature: gender
 
   /** getter for gender - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getGender() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_gender == null)
       jcasType.jcas.throwFeatMissing("gender", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_gender);}
     
   /** setter for gender - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setGender(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_gender == null)
       jcasType.jcas.throwFeatMissing("gender", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -135,14 +156,18 @@ public class Demographics extends TOP {
   //* Feature: firstName
 
   /** getter for firstName - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getFirstName() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_firstName == null)
       jcasType.jcas.throwFeatMissing("firstName", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_firstName);}
     
   /** setter for firstName - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setFirstName(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_firstName == null)
       jcasType.jcas.throwFeatMissing("firstName", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -153,14 +178,18 @@ public class Demographics extends TOP {
   //* Feature: middleName
 
   /** getter for middleName - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getMiddleName() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_middleName == null)
       jcasType.jcas.throwFeatMissing("middleName", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_middleName);}
     
   /** setter for middleName - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setMiddleName(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_middleName == null)
       jcasType.jcas.throwFeatMissing("middleName", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -171,14 +200,18 @@ public class Demographics extends TOP {
   //* Feature: lastName
 
   /** getter for lastName - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getLastName() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_lastName == null)
       jcasType.jcas.throwFeatMissing("lastName", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_lastName);}
     
   /** setter for lastName - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setLastName(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_lastName == null)
       jcasType.jcas.throwFeatMissing("lastName", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -189,14 +222,18 @@ public class Demographics extends TOP {
   //* Feature: firstNameSoundex
 
   /** getter for firstNameSoundex - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getFirstNameSoundex() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_firstNameSoundex == null)
       jcasType.jcas.throwFeatMissing("firstNameSoundex", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_firstNameSoundex);}
     
   /** setter for firstNameSoundex - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setFirstNameSoundex(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_firstNameSoundex == null)
       jcasType.jcas.throwFeatMissing("firstNameSoundex", "org.ohnlp.typesystem.type.structured.Demographics");
@@ -207,14 +244,18 @@ public class Demographics extends TOP {
   //* Feature: lastNameSoundex
 
   /** getter for lastNameSoundex - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getLastNameSoundex() {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_lastNameSoundex == null)
       jcasType.jcas.throwFeatMissing("lastNameSoundex", "org.ohnlp.typesystem.type.structured.Demographics");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Demographics_Type)jcasType).casFeatCode_lastNameSoundex);}
     
   /** setter for lastNameSoundex - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setLastNameSoundex(String v) {
     if (Demographics_Type.featOkTst && ((Demographics_Type)jcasType).casFeat_lastNameSoundex == null)
       jcasType.jcas.throwFeatMissing("lastNameSoundex", "org.ohnlp.typesystem.type.structured.Demographics");

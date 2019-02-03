@@ -1,35 +1,32 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:25 SGT 2019 */
 package org.ohnlp.typesystem.type.syntax;
 
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JCasRegistry;
-import org.apache.uima.cas.impl.CASImpl;
-import org.apache.uima.cas.impl.FSGenerator;
-import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.cas.impl.TypeImpl;
 import org.apache.uima.cas.Type;
 import org.apache.uima.cas.impl.FeatureImpl;
@@ -37,28 +34,9 @@ import org.apache.uima.cas.Feature;
 import org.apache.uima.jcas.tcas.Annotation_Type;
 
 /** A Penn Treebank-style tree node.  Conforms to PTB 2.0 guidelines.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
+ * Updated by JCasGen Sun Feb 03 22:13:25 SGT 2019
  * @generated */
 public class TreebankNode_Type extends Annotation_Type {
-  /** @generated */
-  @Override
-  protected FSGenerator getFSGenerator() {return fsGenerator;}
-  /** @generated */
-  private final FSGenerator fsGenerator = 
-    new FSGenerator() {
-      public FeatureStructure createFS(int addr, CASImpl cas) {
-  			 if (TreebankNode_Type.this.useExistingInstance) {
-  			   // Return eq fs instance if already created
-  		     FeatureStructure fs = TreebankNode_Type.this.jcas.getJfsFromCaddr(addr);
-  		     if (null == fs) {
-  		       fs = new TreebankNode(addr, TreebankNode_Type.this);
-  			   TreebankNode_Type.this.jcas.putJfsFromCaddr(addr, fs);
-  			   return fs;
-  		     }
-  		     return fs;
-        } else return new TreebankNode(addr, TreebankNode_Type.this);
-  	  }
-    };
   /** @generated */
   @SuppressWarnings ("hiding")
   public final static int typeIndexID = TreebankNode.typeIndexID;
@@ -71,13 +49,19 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_nodeType;
   /** @generated */
   final int     casFeatCode_nodeType;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getNodeType(int addr) {
         if (featOkTst && casFeat_nodeType == null)
       jcas.throwFeatMissing("nodeType", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getStringValue(addr, casFeatCode_nodeType);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setNodeType(int addr, String v) {
         if (featOkTst && casFeat_nodeType == null)
       jcas.throwFeatMissing("nodeType", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -89,13 +73,19 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_nodeValue;
   /** @generated */
   final int     casFeatCode_nodeValue;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getNodeValue(int addr) {
         if (featOkTst && casFeat_nodeValue == null)
       jcas.throwFeatMissing("nodeValue", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getStringValue(addr, casFeatCode_nodeValue);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setNodeValue(int addr, String v) {
         if (featOkTst && casFeat_nodeValue == null)
       jcas.throwFeatMissing("nodeValue", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -107,13 +97,19 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_leaf;
   /** @generated */
   final int     casFeatCode_leaf;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public boolean getLeaf(int addr) {
         if (featOkTst && casFeat_leaf == null)
       jcas.throwFeatMissing("leaf", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getBooleanValue(addr, casFeatCode_leaf);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setLeaf(int addr, boolean v) {
         if (featOkTst && casFeat_leaf == null)
       jcas.throwFeatMissing("leaf", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -125,13 +121,19 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_parent;
   /** @generated */
   final int     casFeatCode_parent;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getParent(int addr) {
         if (featOkTst && casFeat_parent == null)
       jcas.throwFeatMissing("parent", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getRefValue(addr, casFeatCode_parent);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setParent(int addr, int v) {
         if (featOkTst && casFeat_parent == null)
       jcas.throwFeatMissing("parent", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -143,19 +145,29 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_children;
   /** @generated */
   final int     casFeatCode_children;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getChildren(int addr) {
         if (featOkTst && casFeat_children == null)
       jcas.throwFeatMissing("children", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getRefValue(addr, casFeatCode_children);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setChildren(int addr, int v) {
         if (featOkTst && casFeat_children == null)
       jcas.throwFeatMissing("children", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     ll_cas.ll_setRefValue(addr, casFeatCode_children, v);}
     
-   /** @generated */
+   /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @return value at index i in the array 
+   */
   public int getChildren(int addr, int i) {
         if (featOkTst && casFeat_children == null)
       jcas.throwFeatMissing("children", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -165,7 +177,11 @@ public class TreebankNode_Type extends Annotation_Type {
 	return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_children), i);
   }
    
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @param v value to set
+   */ 
   public void setChildren(int addr, int i, int v) {
         if (featOkTst && casFeat_children == null)
       jcas.throwFeatMissing("children", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -180,19 +196,29 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_nodeTags;
   /** @generated */
   final int     casFeatCode_nodeTags;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getNodeTags(int addr) {
         if (featOkTst && casFeat_nodeTags == null)
       jcas.throwFeatMissing("nodeTags", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getRefValue(addr, casFeatCode_nodeTags);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setNodeTags(int addr, int v) {
         if (featOkTst && casFeat_nodeTags == null)
       jcas.throwFeatMissing("nodeTags", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     ll_cas.ll_setRefValue(addr, casFeatCode_nodeTags, v);}
     
-   /** @generated */
+   /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @return value at index i in the array 
+   */
   public String getNodeTags(int addr, int i) {
         if (featOkTst && casFeat_nodeTags == null)
       jcas.throwFeatMissing("nodeTags", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -202,7 +228,11 @@ public class TreebankNode_Type extends Annotation_Type {
 	return ll_cas.ll_getStringArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_nodeTags), i);
   }
    
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @param v value to set
+   */ 
   public void setNodeTags(int addr, int i, String v) {
         if (featOkTst && casFeat_nodeTags == null)
       jcas.throwFeatMissing("nodeTags", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -217,13 +247,19 @@ public class TreebankNode_Type extends Annotation_Type {
   final Feature casFeat_headIndex;
   /** @generated */
   final int     casFeatCode_headIndex;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getHeadIndex(int addr) {
         if (featOkTst && casFeat_headIndex == null)
       jcas.throwFeatMissing("headIndex", "org.ohnlp.typesystem.type.syntax.TreebankNode");
     return ll_cas.ll_getIntValue(addr, casFeatCode_headIndex);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setHeadIndex(int addr, int v) {
         if (featOkTst && casFeat_headIndex == null)
       jcas.throwFeatMissing("headIndex", "org.ohnlp.typesystem.type.syntax.TreebankNode");
@@ -234,7 +270,10 @@ public class TreebankNode_Type extends Annotation_Type {
 
 
   /** initialize variables to correspond with Cas Type and Features
-	* @generated */
+	 * @generated
+	 * @param jcas JCas
+	 * @param casType Type 
+	 */
   public TreebankNode_Type(JCas jcas, Type casType) {
     super(jcas, casType);
     casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());

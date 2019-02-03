@@ -1,63 +1,41 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:24 SGT 2019 */
 package org.ohnlp.typesystem.type.refsem;
 
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JCasRegistry;
-import org.apache.uima.cas.impl.CASImpl;
-import org.apache.uima.cas.impl.FSGenerator;
-import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.cas.impl.TypeImpl;
 import org.apache.uima.cas.Type;
 import org.apache.uima.cas.impl.FeatureImpl;
 import org.apache.uima.cas.Feature;
 
 /** This is an Event from the UMLS semantic group of Laboratory Procedures.  Based on generic Clinical Element Models (CEMs)
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
+ * Updated by JCasGen Sun Feb 03 22:13:24 SGT 2019
  * @generated */
 public class Lab_Type extends Event_Type {
-  /** @generated */
-  @Override
-  protected FSGenerator getFSGenerator() {return fsGenerator;}
-  /** @generated */
-  private final FSGenerator fsGenerator = 
-    new FSGenerator() {
-      public FeatureStructure createFS(int addr, CASImpl cas) {
-  			 if (Lab_Type.this.useExistingInstance) {
-  			   // Return eq fs instance if already created
-  		     FeatureStructure fs = Lab_Type.this.jcas.getJfsFromCaddr(addr);
-  		     if (null == fs) {
-  		       fs = new Lab(addr, Lab_Type.this);
-  			   Lab_Type.this.jcas.putJfsFromCaddr(addr, fs);
-  			   return fs;
-  		     }
-  		     return fs;
-        } else return new Lab(addr, Lab_Type.this);
-  	  }
-    };
   /** @generated */
   @SuppressWarnings ("hiding")
   public final static int typeIndexID = Lab.typeIndexID;
@@ -70,13 +48,19 @@ public class Lab_Type extends Event_Type {
   final Feature casFeat_abnormalInterpretation;
   /** @generated */
   final int     casFeatCode_abnormalInterpretation;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getAbnormalInterpretation(int addr) {
         if (featOkTst && casFeat_abnormalInterpretation == null)
       jcas.throwFeatMissing("abnormalInterpretation", "org.ohnlp.typesystem.type.refsem.Lab");
     return ll_cas.ll_getRefValue(addr, casFeatCode_abnormalInterpretation);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setAbnormalInterpretation(int addr, int v) {
         if (featOkTst && casFeat_abnormalInterpretation == null)
       jcas.throwFeatMissing("abnormalInterpretation", "org.ohnlp.typesystem.type.refsem.Lab");
@@ -88,13 +72,19 @@ public class Lab_Type extends Event_Type {
   final Feature casFeat_deltaFlag;
   /** @generated */
   final int     casFeatCode_deltaFlag;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getDeltaFlag(int addr) {
         if (featOkTst && casFeat_deltaFlag == null)
       jcas.throwFeatMissing("deltaFlag", "org.ohnlp.typesystem.type.refsem.Lab");
     return ll_cas.ll_getRefValue(addr, casFeatCode_deltaFlag);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setDeltaFlag(int addr, int v) {
         if (featOkTst && casFeat_deltaFlag == null)
       jcas.throwFeatMissing("deltaFlag", "org.ohnlp.typesystem.type.refsem.Lab");
@@ -106,13 +96,19 @@ public class Lab_Type extends Event_Type {
   final Feature casFeat_labValue;
   /** @generated */
   final int     casFeatCode_labValue;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getLabValue(int addr) {
         if (featOkTst && casFeat_labValue == null)
       jcas.throwFeatMissing("labValue", "org.ohnlp.typesystem.type.refsem.Lab");
     return ll_cas.ll_getRefValue(addr, casFeatCode_labValue);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setLabValue(int addr, int v) {
         if (featOkTst && casFeat_labValue == null)
       jcas.throwFeatMissing("labValue", "org.ohnlp.typesystem.type.refsem.Lab");
@@ -124,13 +120,19 @@ public class Lab_Type extends Event_Type {
   final Feature casFeat_ordinalInterpretation;
   /** @generated */
   final int     casFeatCode_ordinalInterpretation;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getOrdinalInterpretation(int addr) {
         if (featOkTst && casFeat_ordinalInterpretation == null)
       jcas.throwFeatMissing("ordinalInterpretation", "org.ohnlp.typesystem.type.refsem.Lab");
     return ll_cas.ll_getRefValue(addr, casFeatCode_ordinalInterpretation);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setOrdinalInterpretation(int addr, int v) {
         if (featOkTst && casFeat_ordinalInterpretation == null)
       jcas.throwFeatMissing("ordinalInterpretation", "org.ohnlp.typesystem.type.refsem.Lab");
@@ -142,13 +144,19 @@ public class Lab_Type extends Event_Type {
   final Feature casFeat_referenceRangeNarrative;
   /** @generated */
   final int     casFeatCode_referenceRangeNarrative;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getReferenceRangeNarrative(int addr) {
         if (featOkTst && casFeat_referenceRangeNarrative == null)
       jcas.throwFeatMissing("referenceRangeNarrative", "org.ohnlp.typesystem.type.refsem.Lab");
     return ll_cas.ll_getRefValue(addr, casFeatCode_referenceRangeNarrative);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setReferenceRangeNarrative(int addr, int v) {
         if (featOkTst && casFeat_referenceRangeNarrative == null)
       jcas.throwFeatMissing("referenceRangeNarrative", "org.ohnlp.typesystem.type.refsem.Lab");
@@ -159,7 +167,10 @@ public class Lab_Type extends Event_Type {
 
 
   /** initialize variables to correspond with Cas Type and Features
-	* @generated */
+	 * @generated
+	 * @param jcas JCas
+	 * @param casType Type 
+	 */
   public Lab_Type(JCas jcas, Type casType) {
     super(jcas, casType);
     casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());

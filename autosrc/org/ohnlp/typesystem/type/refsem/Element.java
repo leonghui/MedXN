@@ -1,29 +1,28 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:24 SGT 2019 */
 package org.ohnlp.typesystem.type.refsem;
 
 import org.apache.uima.jcas.JCas; 
@@ -31,13 +30,13 @@ import org.apache.uima.jcas.JCasRegistry;
 import org.apache.uima.jcas.cas.TOP_Type;
 
 import org.apache.uima.jcas.cas.FSArray;
-import org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation;
 import org.apache.uima.jcas.cas.TOP;
+import org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation;
 
 
 /** A basic semantic unit that refers to something in the real world, including Entities, Events, Attributes, Dates.  Element inherits from uima.cas.TOP to combine textual mentions of these real-world objects.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
- * XML source: /MedXN_1.0/descsrc/org/ohnlp/medxn/types/MedXNTypes.xml
+ * Updated by JCasGen Sun Feb 03 22:13:24 SGT 2019
+ * XML source: /medxn/src/main/resources/org/ohnlp/medtagger/types/MedTaggerTypes.xml
  * @generated */
 public class Element extends TOP {
   /** @generated
@@ -50,7 +49,9 @@ public class Element extends TOP {
    */
   @SuppressWarnings ("hiding")
   public final static int type = typeIndexID;
-  /** @generated  */
+  /** @generated
+   * @return index of the type  
+   */
   @Override
   public              int getTypeIndexID() {return typeIndexID;}
  
@@ -59,22 +60,30 @@ public class Element extends TOP {
   protected Element() {/* intentionally empty block */}
     
   /** Internal - constructor used by generator 
-   * @generated */
+   * @generated
+   * @param addr low level Feature Structure reference
+   * @param type the type of this Feature Structure 
+   */
   public Element(int addr, TOP_Type type) {
     super(addr, type);
     readObject();
   }
   
-  /** @generated */
+  /** @generated
+   * @param jcas JCas to which this Feature Structure belongs 
+   */
   public Element(JCas jcas) {
     super(jcas);
     readObject();   
   } 
 
-  /** <!-- begin-user-doc -->
-    * Write your own initialization here
-    * <!-- end-user-doc -->
-  @generated modifiable */
+  /** 
+   * <!-- begin-user-doc -->
+   * Write your own initialization here
+   * <!-- end-user-doc -->
+   *
+   * @generated modifiable 
+   */
   private void readObject() {/*default - does nothing empty block */}
      
  
@@ -83,14 +92,18 @@ public class Element extends TOP {
   //* Feature: id
 
   /** getter for id - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getId() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_id == null)
       jcasType.jcas.throwFeatMissing("id", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getIntValue(addr, ((Element_Type)jcasType).casFeatCode_id);}
     
   /** setter for id - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setId(int v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_id == null)
       jcasType.jcas.throwFeatMissing("id", "org.ohnlp.typesystem.type.refsem.Element");
@@ -101,14 +114,18 @@ public class Element extends TOP {
   //* Feature: ontologyConcept
 
   /** getter for ontologyConcept - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public OntologyConcept getOntologyConcept() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_ontologyConcept == null)
       jcasType.jcas.throwFeatMissing("ontologyConcept", "org.ohnlp.typesystem.type.refsem.Element");
     return (OntologyConcept)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefValue(addr, ((Element_Type)jcasType).casFeatCode_ontologyConcept)));}
     
   /** setter for ontologyConcept - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setOntologyConcept(OntologyConcept v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_ontologyConcept == null)
       jcasType.jcas.throwFeatMissing("ontologyConcept", "org.ohnlp.typesystem.type.refsem.Element");
@@ -119,21 +136,28 @@ public class Element extends TOP {
   //* Feature: mentions
 
   /** getter for mentions - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public FSArray getMentions() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_mentions == null)
       jcasType.jcas.throwFeatMissing("mentions", "org.ohnlp.typesystem.type.refsem.Element");
     return (FSArray)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefValue(addr, ((Element_Type)jcasType).casFeatCode_mentions)));}
     
   /** setter for mentions - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setMentions(FSArray v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_mentions == null)
       jcasType.jcas.throwFeatMissing("mentions", "org.ohnlp.typesystem.type.refsem.Element");
     jcasType.ll_cas.ll_setRefValue(addr, ((Element_Type)jcasType).casFeatCode_mentions, jcasType.ll_cas.ll_getFSRef(v));}    
     
   /** indexed getter for mentions - gets an indexed value - 
-   * @generated */
+   * @generated
+   * @param i index in the array to get
+   * @return value of the element at index i 
+   */
   public IdentifiedAnnotation getMentions(int i) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_mentions == null)
       jcasType.jcas.throwFeatMissing("mentions", "org.ohnlp.typesystem.type.refsem.Element");
@@ -141,7 +165,10 @@ public class Element extends TOP {
     return (IdentifiedAnnotation)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefArrayValue(jcasType.ll_cas.ll_getRefValue(addr, ((Element_Type)jcasType).casFeatCode_mentions), i)));}
 
   /** indexed setter for mentions - sets an indexed value - 
-   * @generated */
+   * @generated
+   * @param i index in the array to set
+   * @param v value to set into the array 
+   */
   public void setMentions(int i, IdentifiedAnnotation v) { 
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_mentions == null)
       jcasType.jcas.throwFeatMissing("mentions", "org.ohnlp.typesystem.type.refsem.Element");
@@ -153,14 +180,18 @@ public class Element extends TOP {
   //* Feature: discoveryTechnique
 
   /** getter for discoveryTechnique - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getDiscoveryTechnique() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_discoveryTechnique == null)
       jcasType.jcas.throwFeatMissing("discoveryTechnique", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getIntValue(addr, ((Element_Type)jcasType).casFeatCode_discoveryTechnique);}
     
   /** setter for discoveryTechnique - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setDiscoveryTechnique(int v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_discoveryTechnique == null)
       jcasType.jcas.throwFeatMissing("discoveryTechnique", "org.ohnlp.typesystem.type.refsem.Element");
@@ -171,14 +202,18 @@ public class Element extends TOP {
   //* Feature: confidence
 
   /** getter for confidence - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public double getConfidence() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_confidence == null)
       jcasType.jcas.throwFeatMissing("confidence", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getDoubleValue(addr, ((Element_Type)jcasType).casFeatCode_confidence);}
     
   /** setter for confidence - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setConfidence(double v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_confidence == null)
       jcasType.jcas.throwFeatMissing("confidence", "org.ohnlp.typesystem.type.refsem.Element");
@@ -189,14 +224,18 @@ public class Element extends TOP {
   //* Feature: conditional
 
   /** getter for conditional - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public boolean getConditional() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_conditional == null)
       jcasType.jcas.throwFeatMissing("conditional", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getBooleanValue(addr, ((Element_Type)jcasType).casFeatCode_conditional);}
     
   /** setter for conditional - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setConditional(boolean v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_conditional == null)
       jcasType.jcas.throwFeatMissing("conditional", "org.ohnlp.typesystem.type.refsem.Element");
@@ -207,14 +246,18 @@ public class Element extends TOP {
   //* Feature: generic
 
   /** getter for generic - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public boolean getGeneric() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_generic == null)
       jcasType.jcas.throwFeatMissing("generic", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getBooleanValue(addr, ((Element_Type)jcasType).casFeatCode_generic);}
     
   /** setter for generic - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setGeneric(boolean v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_generic == null)
       jcasType.jcas.throwFeatMissing("generic", "org.ohnlp.typesystem.type.refsem.Element");
@@ -225,14 +268,18 @@ public class Element extends TOP {
   //* Feature: subject
 
   /** getter for subject - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getSubject() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_subject == null)
       jcasType.jcas.throwFeatMissing("subject", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getStringValue(addr, ((Element_Type)jcasType).casFeatCode_subject);}
     
   /** setter for subject - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setSubject(String v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_subject == null)
       jcasType.jcas.throwFeatMissing("subject", "org.ohnlp.typesystem.type.refsem.Element");
@@ -243,14 +290,18 @@ public class Element extends TOP {
   //* Feature: polarity
 
   /** getter for polarity - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getPolarity() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_polarity == null)
       jcasType.jcas.throwFeatMissing("polarity", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getIntValue(addr, ((Element_Type)jcasType).casFeatCode_polarity);}
     
   /** setter for polarity - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setPolarity(int v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_polarity == null)
       jcasType.jcas.throwFeatMissing("polarity", "org.ohnlp.typesystem.type.refsem.Element");
@@ -261,14 +312,18 @@ public class Element extends TOP {
   //* Feature: uncertainty
 
   /** getter for uncertainty - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getUncertainty() {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_uncertainty == null)
       jcasType.jcas.throwFeatMissing("uncertainty", "org.ohnlp.typesystem.type.refsem.Element");
     return jcasType.ll_cas.ll_getIntValue(addr, ((Element_Type)jcasType).casFeatCode_uncertainty);}
     
   /** setter for uncertainty - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setUncertainty(int v) {
     if (Element_Type.featOkTst && ((Element_Type)jcasType).casFeat_uncertainty == null)
       jcasType.jcas.throwFeatMissing("uncertainty", "org.ohnlp.typesystem.type.refsem.Element");

@@ -1,35 +1,32 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:25 SGT 2019 */
 package org.ohnlp.typesystem.type.structured;
 
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JCasRegistry;
-import org.apache.uima.cas.impl.CASImpl;
-import org.apache.uima.cas.impl.FSGenerator;
-import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.cas.impl.TypeImpl;
 import org.apache.uima.cas.Type;
 import org.apache.uima.cas.impl.FeatureImpl;
@@ -37,28 +34,9 @@ import org.apache.uima.cas.Feature;
 import org.apache.uima.jcas.cas.TOP_Type;
 
 /** Structured data that captures information about the document, patient, or context of the clinical text.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
+ * Updated by JCasGen Sun Feb 03 22:13:25 SGT 2019
  * @generated */
 public class Metadata_Type extends TOP_Type {
-  /** @generated */
-  @Override
-  protected FSGenerator getFSGenerator() {return fsGenerator;}
-  /** @generated */
-  private final FSGenerator fsGenerator = 
-    new FSGenerator() {
-      public FeatureStructure createFS(int addr, CASImpl cas) {
-  			 if (Metadata_Type.this.useExistingInstance) {
-  			   // Return eq fs instance if already created
-  		     FeatureStructure fs = Metadata_Type.this.jcas.getJfsFromCaddr(addr);
-  		     if (null == fs) {
-  		       fs = new Metadata(addr, Metadata_Type.this);
-  			   Metadata_Type.this.jcas.putJfsFromCaddr(addr, fs);
-  			   return fs;
-  		     }
-  		     return fs;
-        } else return new Metadata(addr, Metadata_Type.this);
-  	  }
-    };
   /** @generated */
   @SuppressWarnings ("hiding")
   public final static int typeIndexID = Metadata.typeIndexID;
@@ -71,13 +49,19 @@ public class Metadata_Type extends TOP_Type {
   final Feature casFeat_patientID;
   /** @generated */
   final int     casFeatCode_patientID;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public long getPatientID(int addr) {
         if (featOkTst && casFeat_patientID == null)
       jcas.throwFeatMissing("patientID", "org.ohnlp.typesystem.type.structured.Metadata");
     return ll_cas.ll_getLongValue(addr, casFeatCode_patientID);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setPatientID(int addr, long v) {
         if (featOkTst && casFeat_patientID == null)
       jcas.throwFeatMissing("patientID", "org.ohnlp.typesystem.type.structured.Metadata");
@@ -89,19 +73,29 @@ public class Metadata_Type extends TOP_Type {
   final Feature casFeat_providerID;
   /** @generated */
   final int     casFeatCode_providerID;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getProviderID(int addr) {
         if (featOkTst && casFeat_providerID == null)
       jcas.throwFeatMissing("providerID", "org.ohnlp.typesystem.type.structured.Metadata");
     return ll_cas.ll_getRefValue(addr, casFeatCode_providerID);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setProviderID(int addr, int v) {
         if (featOkTst && casFeat_providerID == null)
       jcas.throwFeatMissing("providerID", "org.ohnlp.typesystem.type.structured.Metadata");
     ll_cas.ll_setRefValue(addr, casFeatCode_providerID, v);}
     
-   /** @generated */
+   /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @return value at index i in the array 
+   */
   public long getProviderID(int addr, int i) {
         if (featOkTst && casFeat_providerID == null)
       jcas.throwFeatMissing("providerID", "org.ohnlp.typesystem.type.structured.Metadata");
@@ -111,7 +105,11 @@ public class Metadata_Type extends TOP_Type {
 	return ll_cas.ll_getLongArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_providerID), i);
   }
    
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @param v value to set
+   */ 
   public void setProviderID(int addr, int i, long v) {
         if (featOkTst && casFeat_providerID == null)
       jcas.throwFeatMissing("providerID", "org.ohnlp.typesystem.type.structured.Metadata");
@@ -126,13 +124,19 @@ public class Metadata_Type extends TOP_Type {
   final Feature casFeat_sourceData;
   /** @generated */
   final int     casFeatCode_sourceData;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getSourceData(int addr) {
         if (featOkTst && casFeat_sourceData == null)
       jcas.throwFeatMissing("sourceData", "org.ohnlp.typesystem.type.structured.Metadata");
     return ll_cas.ll_getRefValue(addr, casFeatCode_sourceData);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceData(int addr, int v) {
         if (featOkTst && casFeat_sourceData == null)
       jcas.throwFeatMissing("sourceData", "org.ohnlp.typesystem.type.structured.Metadata");
@@ -144,13 +148,19 @@ public class Metadata_Type extends TOP_Type {
   final Feature casFeat_demographics;
   /** @generated */
   final int     casFeatCode_demographics;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getDemographics(int addr) {
         if (featOkTst && casFeat_demographics == null)
       jcas.throwFeatMissing("demographics", "org.ohnlp.typesystem.type.structured.Metadata");
     return ll_cas.ll_getRefValue(addr, casFeatCode_demographics);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setDemographics(int addr, int v) {
         if (featOkTst && casFeat_demographics == null)
       jcas.throwFeatMissing("demographics", "org.ohnlp.typesystem.type.structured.Metadata");
@@ -161,7 +171,10 @@ public class Metadata_Type extends TOP_Type {
 
 
   /** initialize variables to correspond with Cas Type and Features
-	* @generated */
+	 * @generated
+	 * @param jcas JCas
+	 * @param casType Type 
+	 */
   public Metadata_Type(JCas jcas, Type casType) {
     super(jcas, casType);
     casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());

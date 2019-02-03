@@ -1,63 +1,41 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:26 SGT 2019 */
 package org.ohnlp.typesystem.type.textsem;
 
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JCasRegistry;
-import org.apache.uima.cas.impl.CASImpl;
-import org.apache.uima.cas.impl.FSGenerator;
-import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.cas.impl.TypeImpl;
 import org.apache.uima.cas.Type;
 import org.apache.uima.cas.impl.FeatureImpl;
 import org.apache.uima.cas.Feature;
 
 /** A text string (EventMention and therefore IdentifiedAnnotation) that refers to a (Medication) Event.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
+ * Updated by JCasGen Sun Feb 03 22:13:26 SGT 2019
  * @generated */
 public class MedicationEventMention_Type extends EventMention_Type {
-  /** @generated */
-  @Override
-  protected FSGenerator getFSGenerator() {return fsGenerator;}
-  /** @generated */
-  private final FSGenerator fsGenerator = 
-    new FSGenerator() {
-      public FeatureStructure createFS(int addr, CASImpl cas) {
-  			 if (MedicationEventMention_Type.this.useExistingInstance) {
-  			   // Return eq fs instance if already created
-  		     FeatureStructure fs = MedicationEventMention_Type.this.jcas.getJfsFromCaddr(addr);
-  		     if (null == fs) {
-  		       fs = new MedicationEventMention(addr, MedicationEventMention_Type.this);
-  			   MedicationEventMention_Type.this.jcas.putJfsFromCaddr(addr, fs);
-  			   return fs;
-  		     }
-  		     return fs;
-        } else return new MedicationEventMention(addr, MedicationEventMention_Type.this);
-  	  }
-    };
   /** @generated */
   @SuppressWarnings ("hiding")
   public final static int typeIndexID = MedicationEventMention.typeIndexID;
@@ -70,13 +48,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationFrequency;
   /** @generated */
   final int     casFeatCode_medicationFrequency;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationFrequency(int addr) {
         if (featOkTst && casFeat_medicationFrequency == null)
       jcas.throwFeatMissing("medicationFrequency", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationFrequency);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationFrequency(int addr, int v) {
         if (featOkTst && casFeat_medicationFrequency == null)
       jcas.throwFeatMissing("medicationFrequency", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -88,13 +72,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationDuration;
   /** @generated */
   final int     casFeatCode_medicationDuration;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationDuration(int addr) {
         if (featOkTst && casFeat_medicationDuration == null)
       jcas.throwFeatMissing("medicationDuration", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationDuration);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationDuration(int addr, int v) {
         if (featOkTst && casFeat_medicationDuration == null)
       jcas.throwFeatMissing("medicationDuration", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -106,13 +96,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationRoute;
   /** @generated */
   final int     casFeatCode_medicationRoute;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationRoute(int addr) {
         if (featOkTst && casFeat_medicationRoute == null)
       jcas.throwFeatMissing("medicationRoute", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationRoute);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationRoute(int addr, int v) {
         if (featOkTst && casFeat_medicationRoute == null)
       jcas.throwFeatMissing("medicationRoute", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -124,13 +120,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationStatusChange;
   /** @generated */
   final int     casFeatCode_medicationStatusChange;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationStatusChange(int addr) {
         if (featOkTst && casFeat_medicationStatusChange == null)
       jcas.throwFeatMissing("medicationStatusChange", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationStatusChange);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationStatusChange(int addr, int v) {
         if (featOkTst && casFeat_medicationStatusChange == null)
       jcas.throwFeatMissing("medicationStatusChange", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -142,13 +144,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationDosage;
   /** @generated */
   final int     casFeatCode_medicationDosage;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationDosage(int addr) {
         if (featOkTst && casFeat_medicationDosage == null)
       jcas.throwFeatMissing("medicationDosage", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationDosage);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationDosage(int addr, int v) {
         if (featOkTst && casFeat_medicationDosage == null)
       jcas.throwFeatMissing("medicationDosage", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -160,13 +168,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationStrength;
   /** @generated */
   final int     casFeatCode_medicationStrength;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationStrength(int addr) {
         if (featOkTst && casFeat_medicationStrength == null)
       jcas.throwFeatMissing("medicationStrength", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationStrength);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationStrength(int addr, int v) {
         if (featOkTst && casFeat_medicationStrength == null)
       jcas.throwFeatMissing("medicationStrength", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -178,13 +192,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_medicationForm;
   /** @generated */
   final int     casFeatCode_medicationForm;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getMedicationForm(int addr) {
         if (featOkTst && casFeat_medicationForm == null)
       jcas.throwFeatMissing("medicationForm", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_medicationForm);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setMedicationForm(int addr, int v) {
         if (featOkTst && casFeat_medicationForm == null)
       jcas.throwFeatMissing("medicationForm", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -196,13 +216,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_startDate;
   /** @generated */
   final int     casFeatCode_startDate;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getStartDate(int addr) {
         if (featOkTst && casFeat_startDate == null)
       jcas.throwFeatMissing("startDate", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_startDate);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setStartDate(int addr, int v) {
         if (featOkTst && casFeat_startDate == null)
       jcas.throwFeatMissing("startDate", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -214,13 +240,19 @@ public class MedicationEventMention_Type extends EventMention_Type {
   final Feature casFeat_endDate;
   /** @generated */
   final int     casFeatCode_endDate;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getEndDate(int addr) {
         if (featOkTst && casFeat_endDate == null)
       jcas.throwFeatMissing("endDate", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
     return ll_cas.ll_getRefValue(addr, casFeatCode_endDate);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setEndDate(int addr, int v) {
         if (featOkTst && casFeat_endDate == null)
       jcas.throwFeatMissing("endDate", "org.ohnlp.typesystem.type.textsem.MedicationEventMention");
@@ -231,7 +263,10 @@ public class MedicationEventMention_Type extends EventMention_Type {
 
 
   /** initialize variables to correspond with Cas Type and Features
-	* @generated */
+	 * @generated
+	 * @param jcas JCas
+	 * @param casType Type 
+	 */
   public MedicationEventMention_Type(JCas jcas, Type casType) {
     super(jcas, casType);
     casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());

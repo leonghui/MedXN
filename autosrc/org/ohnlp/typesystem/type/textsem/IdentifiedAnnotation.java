@@ -1,29 +1,28 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:25 SGT 2019 */
 package org.ohnlp.typesystem.type.textsem;
 
 import org.apache.uima.jcas.JCas; 
@@ -36,8 +35,8 @@ import org.apache.uima.jcas.tcas.Annotation;
 
 
 /** Any span of text that has been discovered or flagged for some reason, such as a Named Entity.  Allows for mapping to an ontology.  Generalized from Mayo cTAKES version 2.5: org.ohnlp.typesystem.type.IdentifiedAnnotation.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
- * XML source: /MedXN_1.0/descsrc/org/ohnlp/medxn/types/MedXNTypes.xml
+ * Updated by JCasGen Sun Feb 03 22:13:25 SGT 2019
+ * XML source: /medxn/src/main/resources/org/ohnlp/medtagger/types/MedTaggerTypes.xml
  * @generated */
 public class IdentifiedAnnotation extends Annotation {
   /** @generated
@@ -50,7 +49,9 @@ public class IdentifiedAnnotation extends Annotation {
    */
   @SuppressWarnings ("hiding")
   public final static int type = typeIndexID;
-  /** @generated  */
+  /** @generated
+   * @return index of the type  
+   */
   @Override
   public              int getTypeIndexID() {return typeIndexID;}
  
@@ -59,19 +60,28 @@ public class IdentifiedAnnotation extends Annotation {
   protected IdentifiedAnnotation() {/* intentionally empty block */}
     
   /** Internal - constructor used by generator 
-   * @generated */
+   * @generated
+   * @param addr low level Feature Structure reference
+   * @param type the type of this Feature Structure 
+   */
   public IdentifiedAnnotation(int addr, TOP_Type type) {
     super(addr, type);
     readObject();
   }
   
-  /** @generated */
+  /** @generated
+   * @param jcas JCas to which this Feature Structure belongs 
+   */
   public IdentifiedAnnotation(JCas jcas) {
     super(jcas);
     readObject();   
   } 
 
-  /** @generated */  
+  /** @generated
+   * @param jcas JCas to which this Feature Structure belongs
+   * @param begin offset to the begin spot in the SofA
+   * @param end offset to the end spot in the SofA 
+  */  
   public IdentifiedAnnotation(JCas jcas, int begin, int end) {
     super(jcas);
     setBegin(begin);
@@ -79,10 +89,13 @@ public class IdentifiedAnnotation extends Annotation {
     readObject();
   }   
 
-  /** <!-- begin-user-doc -->
-    * Write your own initialization here
-    * <!-- end-user-doc -->
-  @generated modifiable */
+  /** 
+   * <!-- begin-user-doc -->
+   * Write your own initialization here
+   * <!-- end-user-doc -->
+   *
+   * @generated modifiable 
+   */
   private void readObject() {/*default - does nothing empty block */}
      
  
@@ -91,14 +104,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: id
 
   /** getter for id - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getId() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_id == null)
       jcasType.jcas.throwFeatMissing("id", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getIntValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_id);}
     
   /** setter for id - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setId(int v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_id == null)
       jcasType.jcas.throwFeatMissing("id", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -109,21 +126,28 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: ontologyConceptArr
 
   /** getter for ontologyConceptArr - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public FSArray getOntologyConceptArr() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_ontologyConceptArr == null)
       jcasType.jcas.throwFeatMissing("ontologyConceptArr", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return (FSArray)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_ontologyConceptArr)));}
     
   /** setter for ontologyConceptArr - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setOntologyConceptArr(FSArray v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_ontologyConceptArr == null)
       jcasType.jcas.throwFeatMissing("ontologyConceptArr", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     jcasType.ll_cas.ll_setRefValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_ontologyConceptArr, jcasType.ll_cas.ll_getFSRef(v));}    
     
   /** indexed getter for ontologyConceptArr - gets an indexed value - 
-   * @generated */
+   * @generated
+   * @param i index in the array to get
+   * @return value of the element at index i 
+   */
   public OntologyConcept getOntologyConceptArr(int i) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_ontologyConceptArr == null)
       jcasType.jcas.throwFeatMissing("ontologyConceptArr", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -131,7 +155,10 @@ public class IdentifiedAnnotation extends Annotation {
     return (OntologyConcept)(jcasType.ll_cas.ll_getFSForRef(jcasType.ll_cas.ll_getRefArrayValue(jcasType.ll_cas.ll_getRefValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_ontologyConceptArr), i)));}
 
   /** indexed setter for ontologyConceptArr - sets an indexed value - 
-   * @generated */
+   * @generated
+   * @param i index in the array to set
+   * @param v value to set into the array 
+   */
   public void setOntologyConceptArr(int i, OntologyConcept v) { 
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_ontologyConceptArr == null)
       jcasType.jcas.throwFeatMissing("ontologyConceptArr", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -143,14 +170,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: typeID
 
   /** getter for typeID - gets The type of named entity (e.g. drug, disorder, ...)
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getTypeID() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_typeID == null)
       jcasType.jcas.throwFeatMissing("typeID", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getIntValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_typeID);}
     
   /** setter for typeID - sets The type of named entity (e.g. drug, disorder, ...) 
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setTypeID(int v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_typeID == null)
       jcasType.jcas.throwFeatMissing("typeID", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -161,14 +192,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: segmentID
 
   /** getter for segmentID - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getSegmentID() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_segmentID == null)
       jcasType.jcas.throwFeatMissing("segmentID", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getStringValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_segmentID);}
     
   /** setter for segmentID - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setSegmentID(String v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_segmentID == null)
       jcasType.jcas.throwFeatMissing("segmentID", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -179,14 +214,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: sentenceID
 
   /** getter for sentenceID - gets contains the sentence id of the sentence that contains the NE's text span
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getSentenceID() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_sentenceID == null)
       jcasType.jcas.throwFeatMissing("sentenceID", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getStringValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_sentenceID);}
     
   /** setter for sentenceID - sets contains the sentence id of the sentence that contains the NE's text span 
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setSentenceID(String v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_sentenceID == null)
       jcasType.jcas.throwFeatMissing("sentenceID", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -197,14 +236,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: discoveryTechnique
 
   /** getter for discoveryTechnique - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getDiscoveryTechnique() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_discoveryTechnique == null)
       jcasType.jcas.throwFeatMissing("discoveryTechnique", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getIntValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_discoveryTechnique);}
     
   /** setter for discoveryTechnique - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setDiscoveryTechnique(int v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_discoveryTechnique == null)
       jcasType.jcas.throwFeatMissing("discoveryTechnique", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -215,14 +258,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: confidence
 
   /** getter for confidence - gets The confidence of the annotation.
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public float getConfidence() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_confidence == null)
       jcasType.jcas.throwFeatMissing("confidence", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getFloatValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_confidence);}
     
   /** setter for confidence - sets The confidence of the annotation. 
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setConfidence(float v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_confidence == null)
       jcasType.jcas.throwFeatMissing("confidence", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -233,14 +280,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: polarity
 
   /** getter for polarity - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getPolarity() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_polarity == null)
       jcasType.jcas.throwFeatMissing("polarity", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getIntValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_polarity);}
     
   /** setter for polarity - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setPolarity(int v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_polarity == null)
       jcasType.jcas.throwFeatMissing("polarity", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -251,14 +302,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: uncertainty
 
   /** getter for uncertainty - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public int getUncertainty() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_uncertainty == null)
       jcasType.jcas.throwFeatMissing("uncertainty", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getIntValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_uncertainty);}
     
   /** setter for uncertainty - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setUncertainty(int v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_uncertainty == null)
       jcasType.jcas.throwFeatMissing("uncertainty", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -269,14 +324,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: conditional
 
   /** getter for conditional - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public boolean getConditional() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_conditional == null)
       jcasType.jcas.throwFeatMissing("conditional", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getBooleanValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_conditional);}
     
   /** setter for conditional - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setConditional(boolean v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_conditional == null)
       jcasType.jcas.throwFeatMissing("conditional", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -287,14 +346,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: generic
 
   /** getter for generic - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public boolean getGeneric() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_generic == null)
       jcasType.jcas.throwFeatMissing("generic", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getBooleanValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_generic);}
     
   /** setter for generic - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setGeneric(boolean v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_generic == null)
       jcasType.jcas.throwFeatMissing("generic", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
@@ -305,14 +368,18 @@ public class IdentifiedAnnotation extends Annotation {
   //* Feature: subject
 
   /** getter for subject - gets 
-   * @generated */
+   * @generated
+   * @return value of the feature 
+   */
   public String getSubject() {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_subject == null)
       jcasType.jcas.throwFeatMissing("subject", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");
     return jcasType.ll_cas.ll_getStringValue(addr, ((IdentifiedAnnotation_Type)jcasType).casFeatCode_subject);}
     
   /** setter for subject - sets  
-   * @generated */
+   * @generated
+   * @param v value to set into the feature 
+   */
   public void setSubject(String v) {
     if (IdentifiedAnnotation_Type.featOkTst && ((IdentifiedAnnotation_Type)jcasType).casFeat_subject == null)
       jcasType.jcas.throwFeatMissing("subject", "org.ohnlp.typesystem.type.textsem.IdentifiedAnnotation");

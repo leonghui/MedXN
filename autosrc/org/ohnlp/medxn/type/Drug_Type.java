@@ -1,361 +1,425 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
  *
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0 
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:01 SGT 2019 */
 package org.ohnlp.medxn.type;
 
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JCasRegistry;
-import org.apache.uima.cas.impl.CASImpl;
-import org.apache.uima.cas.impl.FSGenerator;
-import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.cas.impl.TypeImpl;
 import org.apache.uima.cas.Type;
 import org.apache.uima.cas.impl.FeatureImpl;
 import org.apache.uima.cas.Feature;
 import org.apache.uima.jcas.tcas.Annotation_Type;
 
-/**
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
+/** 
+ * Updated by JCasGen Sun Feb 03 22:13:01 SGT 2019
  * @generated */
 public class Drug_Type extends Annotation_Type {
-    /** @generated */
-    @Override
-    protected FSGenerator getFSGenerator() {return fsGenerator;}
-    /** @generated */
-    private final FSGenerator fsGenerator =
-            new FSGenerator() {
-                public FeatureStructure createFS(int addr, CASImpl cas) {
-                    if (Drug_Type.this.useExistingInstance) {
-                        // Return eq fs instance if already created
-                        FeatureStructure fs = Drug_Type.this.jcas.getJfsFromCaddr(addr);
-                        if (null == fs) {
-                            fs = new Drug(addr, Drug_Type.this);
-                            Drug_Type.this.jcas.putJfsFromCaddr(addr, fs);
-                            return fs;
-                        }
-                        return fs;
-                    } else return new Drug(addr, Drug_Type.this);
-                }
-            };
-    /** @generated */
-    @SuppressWarnings ("hiding")
-    public final static int typeIndexID = Drug.typeIndexID;
-    /** @generated
+  /** @generated */
+  @SuppressWarnings ("hiding")
+  public final static int typeIndexID = Drug.typeIndexID;
+  /** @generated 
      @modifiable */
-    @SuppressWarnings ("hiding")
-    public final static boolean featOkTst = JCasRegistry.getFeatOkTst("org.ohnlp.medxn.type.Drug");
-
-    /** @generated */
-    final Feature casFeat_name;
-    /** @generated */
-    final int     casFeatCode_name;
-    /** @generated */
-    public int getName(int addr) {
+  @SuppressWarnings ("hiding")
+  public final static boolean featOkTst = JCasRegistry.getFeatOkTst("org.ohnlp.medxn.type.Drug");
+ 
+  /** @generated */
+  final Feature casFeat_name;
+  /** @generated */
+  final int     casFeatCode_name;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public int getName(int addr) {
         if (featOkTst && casFeat_name == null)
-            jcas.throwFeatMissing("name", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getRefValue(addr, casFeatCode_name);
-    }
-    /** @generated */
-    public void setName(int addr, int v) {
+      jcas.throwFeatMissing("name", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getRefValue(addr, casFeatCode_name);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setName(int addr, int v) {
         if (featOkTst && casFeat_name == null)
-            jcas.throwFeatMissing("name", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setRefValue(addr, casFeatCode_name, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_attrs;
-    /** @generated */
-    final int     casFeatCode_attrs;
-    /** @generated */
-    public int getAttrs(int addr) {
+      jcas.throwFeatMissing("name", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setRefValue(addr, casFeatCode_name, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_attrs;
+  /** @generated */
+  final int     casFeatCode_attrs;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public int getAttrs(int addr) {
         if (featOkTst && casFeat_attrs == null)
-            jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getRefValue(addr, casFeatCode_attrs);
-    }
-    /** @generated */
-    public void setAttrs(int addr, int v) {
+      jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getRefValue(addr, casFeatCode_attrs);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setAttrs(int addr, int v) {
         if (featOkTst && casFeat_attrs == null)
-            jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setRefValue(addr, casFeatCode_attrs, v);}
-
-    /** @generated */
-    public int getAttrs(int addr, int i) {
+      jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setRefValue(addr, casFeatCode_attrs, v);}
+    
+   /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @return value at index i in the array 
+   */
+  public int getAttrs(int addr, int i) {
         if (featOkTst && casFeat_attrs == null)
-            jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
-        if (lowLevelTypeChecks)
-            return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i, true);
-        jcas.checkArrayBounds(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i);
-        return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i);
-    }
-
-    /** @generated */
-    public void setAttrs(int addr, int i, int v) {
+      jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
+    if (lowLevelTypeChecks)
+      return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i, true);
+    jcas.checkArrayBounds(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i);
+	return ll_cas.ll_getRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i);
+  }
+   
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param i index of item in the array
+   * @param v value to set
+   */ 
+  public void setAttrs(int addr, int i, int v) {
         if (featOkTst && casFeat_attrs == null)
-            jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
-        if (lowLevelTypeChecks)
-            ll_cas.ll_setRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i, v, true);
-        jcas.checkArrayBounds(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i);
-        ll_cas.ll_setRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i, v);
-    }
-
-
-    /** @generated */
-    final Feature casFeat_normDrug;
-    /** @generated */
-    final int     casFeatCode_normDrug;
-    /** @generated */
-    public String getNormDrug(int addr) {
+      jcas.throwFeatMissing("attrs", "org.ohnlp.medxn.type.Drug");
+    if (lowLevelTypeChecks)
+      ll_cas.ll_setRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i, v, true);
+    jcas.checkArrayBounds(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i);
+    ll_cas.ll_setRefArrayValue(ll_cas.ll_getRefValue(addr, casFeatCode_attrs), i, v);
+  }
+ 
+ 
+  /** @generated */
+  final Feature casFeat_normDrug;
+  /** @generated */
+  final int     casFeatCode_normDrug;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormDrug(int addr) {
         if (featOkTst && casFeat_normDrug == null)
-            jcas.throwFeatMissing("normDrug", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normDrug);
-    }
-    /** @generated */
-    public void setNormDrug(int addr, String v) {
+      jcas.throwFeatMissing("normDrug", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normDrug);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormDrug(int addr, String v) {
         if (featOkTst && casFeat_normDrug == null)
-            jcas.throwFeatMissing("normDrug", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normDrug, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normRxType;
-    /** @generated */
-    final int     casFeatCode_normRxType;
-    /** @generated */
-    public String getNormRxType(int addr) {
+      jcas.throwFeatMissing("normDrug", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normDrug, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normRxType;
+  /** @generated */
+  final int     casFeatCode_normRxType;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormRxType(int addr) {
         if (featOkTst && casFeat_normRxType == null)
-            jcas.throwFeatMissing("normRxType", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normRxType);
-    }
-    /** @generated */
-    public void setNormRxType(int addr, String v) {
+      jcas.throwFeatMissing("normRxType", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normRxType);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormRxType(int addr, String v) {
         if (featOkTst && casFeat_normRxType == null)
-            jcas.throwFeatMissing("normRxType", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normRxType, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normRxCui;
-    /** @generated */
-    final int     casFeatCode_normRxCui;
-    /** @generated */
-    public String getNormRxCui(int addr) {
+      jcas.throwFeatMissing("normRxType", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normRxType, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normRxCui;
+  /** @generated */
+  final int     casFeatCode_normRxCui;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormRxCui(int addr) {
         if (featOkTst && casFeat_normRxCui == null)
-            jcas.throwFeatMissing("normRxCui", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normRxCui);
-    }
-    /** @generated */
-    public void setNormRxCui(int addr, String v) {
+      jcas.throwFeatMissing("normRxCui", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normRxCui);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormRxCui(int addr, String v) {
         if (featOkTst && casFeat_normRxCui == null)
-            jcas.throwFeatMissing("normRxCui", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normRxCui, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normRxName;
-    /** @generated */
-    final int     casFeatCode_normRxName;
-    /** @generated */
-    public String getNormRxName(int addr) {
+      jcas.throwFeatMissing("normRxCui", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normRxCui, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normRxName;
+  /** @generated */
+  final int     casFeatCode_normRxName;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormRxName(int addr) {
         if (featOkTst && casFeat_normRxName == null)
-            jcas.throwFeatMissing("normRxName", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normRxName);
-    }
-    /** @generated */
-    public void setNormRxName(int addr, String v) {
+      jcas.throwFeatMissing("normRxName", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normRxName);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormRxName(int addr, String v) {
         if (featOkTst && casFeat_normRxName == null)
-            jcas.throwFeatMissing("normRxName", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normRxName, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normDrug2;
-    /** @generated */
-    final int     casFeatCode_normDrug2;
-    /** @generated */
-    public String getNormDrug2(int addr) {
+      jcas.throwFeatMissing("normRxName", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normRxName, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normDrug2;
+  /** @generated */
+  final int     casFeatCode_normDrug2;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormDrug2(int addr) {
         if (featOkTst && casFeat_normDrug2 == null)
-            jcas.throwFeatMissing("normDrug2", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normDrug2);
-    }
-    /** @generated */
-    public void setNormDrug2(int addr, String v) {
+      jcas.throwFeatMissing("normDrug2", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normDrug2);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormDrug2(int addr, String v) {
         if (featOkTst && casFeat_normDrug2 == null)
-            jcas.throwFeatMissing("normDrug2", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normDrug2, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normRxType2;
-    /** @generated */
-    final int     casFeatCode_normRxType2;
-    /** @generated */
-    public String getNormRxType2(int addr) {
+      jcas.throwFeatMissing("normDrug2", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normDrug2, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normRxType2;
+  /** @generated */
+  final int     casFeatCode_normRxType2;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormRxType2(int addr) {
         if (featOkTst && casFeat_normRxType2 == null)
-            jcas.throwFeatMissing("normRxType2", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normRxType2);
-    }
-    /** @generated */
-    public void setNormRxType2(int addr, String v) {
+      jcas.throwFeatMissing("normRxType2", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normRxType2);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormRxType2(int addr, String v) {
         if (featOkTst && casFeat_normRxType2 == null)
-            jcas.throwFeatMissing("normRxType2", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normRxType2, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normRxCui2;
-    /** @generated */
-    final int     casFeatCode_normRxCui2;
-    /** @generated */
-    public String getNormRxCui2(int addr) {
+      jcas.throwFeatMissing("normRxType2", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normRxType2, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normRxCui2;
+  /** @generated */
+  final int     casFeatCode_normRxCui2;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormRxCui2(int addr) {
         if (featOkTst && casFeat_normRxCui2 == null)
-            jcas.throwFeatMissing("normRxCui2", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normRxCui2);
-    }
-    /** @generated */
-    public void setNormRxCui2(int addr, String v) {
+      jcas.throwFeatMissing("normRxCui2", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normRxCui2);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormRxCui2(int addr, String v) {
         if (featOkTst && casFeat_normRxCui2 == null)
-            jcas.throwFeatMissing("normRxCui2", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normRxCui2, v);}
-
-
-
-    /** @generated */
-    final Feature casFeat_normRxName2;
-    /** @generated */
-    final int     casFeatCode_normRxName2;
-    /** @generated */
-    public String getNormRxName2(int addr) {
+      jcas.throwFeatMissing("normRxCui2", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normRxCui2, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_normRxName2;
+  /** @generated */
+  final int     casFeatCode_normRxName2;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getNormRxName2(int addr) {
         if (featOkTst && casFeat_normRxName2 == null)
-            jcas.throwFeatMissing("normRxName2", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_normRxName2);
-    }
-    /** @generated */
-    public void setNormRxName2(int addr, String v) {
+      jcas.throwFeatMissing("normRxName2", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_normRxName2);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setNormRxName2(int addr, String v) {
         if (featOkTst && casFeat_normRxName2 == null)
-            jcas.throwFeatMissing("normRxName2", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_normRxName2, v);}
+      jcas.throwFeatMissing("normRxName2", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_normRxName2, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_formRxCui;
+  /** @generated */
+  final int     casFeatCode_formRxCui;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getFormRxCui(int addr) {
+        if (featOkTst && casFeat_formRxCui == null)
+      jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_formRxCui);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setFormRxCui(int addr, String v) {
+        if (featOkTst && casFeat_formRxCui == null)
+      jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_formRxCui, v);}
+    
+  
+ 
+  /** @generated */
+  final Feature casFeat_brand;
+  /** @generated */
+  final int     casFeatCode_brand;
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
+  public String getBrand(int addr) {
+        if (featOkTst && casFeat_brand == null)
+      jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
+    return ll_cas.ll_getStringValue(addr, casFeatCode_brand);
+  }
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
+  public void setBrand(int addr, String v) {
+        if (featOkTst && casFeat_brand == null)
+      jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
+    ll_cas.ll_setStringValue(addr, casFeatCode_brand, v);}
+    
+  
 
 
 
-    /** @generated */
-    final Feature casFeat_FormRxCui;
-    /** @generated */
-    final int     casFeatCode_FormRxCui;
-    /** @generated */
-    public String getFormRxCui(int addr) {
-        if (featOkTst && casFeat_FormRxCui == null)
-            jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_FormRxCui);
-    }
-    /** @generated */
-    public void setFormRxCui(int addr, String v) {
-        if (featOkTst && casFeat_FormRxCui == null)
-            jcas.throwFeatMissing("formRxCui", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_FormRxCui, v);}
+  /** initialize variables to correspond with Cas Type and Features
+	 * @generated
+	 * @param jcas JCas
+	 * @param casType Type 
+	 */
+  public Drug_Type(JCas jcas, Type casType) {
+    super(jcas, casType);
+    casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());
 
+ 
+    casFeat_name = jcas.getRequiredFeatureDE(casType, "name", "org.ohnlp.medtagger.type.ConceptMention", featOkTst);
+    casFeatCode_name  = (null == casFeat_name) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_name).getCode();
 
+ 
+    casFeat_attrs = jcas.getRequiredFeatureDE(casType, "attrs", "uima.cas.FSArray", featOkTst);
+    casFeatCode_attrs  = (null == casFeat_attrs) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_attrs).getCode();
 
-    /** @generated */
-    final Feature casFeat_Brand;
-    /** @generated */
-    final int     casFeatCode_Brand;
-    /** @generated */
-    public String getBrand(int addr) {
-        if (featOkTst && casFeat_Brand == null)
-            jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
-        return ll_cas.ll_getStringValue(addr, casFeatCode_Brand);
-    }
-    /** @generated */
-    public void setBrand(int addr, String v) {
-        if (featOkTst && casFeat_Brand == null)
-            jcas.throwFeatMissing("brand", "org.ohnlp.medxn.type.Drug");
-        ll_cas.ll_setStringValue(addr, casFeatCode_Brand, v);}
+ 
+    casFeat_normDrug = jcas.getRequiredFeatureDE(casType, "normDrug", "uima.cas.String", featOkTst);
+    casFeatCode_normDrug  = (null == casFeat_normDrug) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normDrug).getCode();
 
+ 
+    casFeat_normRxType = jcas.getRequiredFeatureDE(casType, "normRxType", "uima.cas.String", featOkTst);
+    casFeatCode_normRxType  = (null == casFeat_normRxType) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxType).getCode();
 
+ 
+    casFeat_normRxCui = jcas.getRequiredFeatureDE(casType, "normRxCui", "uima.cas.String", featOkTst);
+    casFeatCode_normRxCui  = (null == casFeat_normRxCui) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxCui).getCode();
 
-    /** initialize variables to correspond with Cas Type and Features
-     * @generated */
-    public Drug_Type(JCas jcas, Type casType) {
-        super(jcas, casType);
-        casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());
+ 
+    casFeat_normRxName = jcas.getRequiredFeatureDE(casType, "normRxName", "uima.cas.String", featOkTst);
+    casFeatCode_normRxName  = (null == casFeat_normRxName) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxName).getCode();
 
+ 
+    casFeat_normDrug2 = jcas.getRequiredFeatureDE(casType, "normDrug2", "uima.cas.String", featOkTst);
+    casFeatCode_normDrug2  = (null == casFeat_normDrug2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normDrug2).getCode();
 
-        casFeat_name = jcas.getRequiredFeatureDE(casType, "name", "org.ohnlp.medtagger.type.ConceptMention", featOkTst);
-        casFeatCode_name  = (null == casFeat_name) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_name).getCode();
+ 
+    casFeat_normRxType2 = jcas.getRequiredFeatureDE(casType, "normRxType2", "uima.cas.String", featOkTst);
+    casFeatCode_normRxType2  = (null == casFeat_normRxType2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxType2).getCode();
 
+ 
+    casFeat_normRxCui2 = jcas.getRequiredFeatureDE(casType, "normRxCui2", "uima.cas.String", featOkTst);
+    casFeatCode_normRxCui2  = (null == casFeat_normRxCui2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxCui2).getCode();
 
-        casFeat_attrs = jcas.getRequiredFeatureDE(casType, "attrs", "uima.cas.FSArray", featOkTst);
-        casFeatCode_attrs  = (null == casFeat_attrs) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_attrs).getCode();
+ 
+    casFeat_normRxName2 = jcas.getRequiredFeatureDE(casType, "normRxName2", "uima.cas.String", featOkTst);
+    casFeatCode_normRxName2  = (null == casFeat_normRxName2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxName2).getCode();
 
+ 
+    casFeat_formRxCui = jcas.getRequiredFeatureDE(casType, "formRxCui", "uima.cas.String", featOkTst);
+    casFeatCode_formRxCui  = (null == casFeat_formRxCui) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_formRxCui).getCode();
 
-        casFeat_normDrug = jcas.getRequiredFeatureDE(casType, "normDrug", "uima.cas.String", featOkTst);
-        casFeatCode_normDrug  = (null == casFeat_normDrug) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normDrug).getCode();
+ 
+    casFeat_brand = jcas.getRequiredFeatureDE(casType, "brand", "uima.cas.String", featOkTst);
+    casFeatCode_brand  = (null == casFeat_brand) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_brand).getCode();
 
-
-        casFeat_normRxType = jcas.getRequiredFeatureDE(casType, "normRxType", "uima.cas.String", featOkTst);
-        casFeatCode_normRxType  = (null == casFeat_normRxType) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxType).getCode();
-
-
-        casFeat_normRxCui = jcas.getRequiredFeatureDE(casType, "normRxCui", "uima.cas.String", featOkTst);
-        casFeatCode_normRxCui  = (null == casFeat_normRxCui) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxCui).getCode();
-
-
-        casFeat_normRxName = jcas.getRequiredFeatureDE(casType, "normRxName", "uima.cas.String", featOkTst);
-        casFeatCode_normRxName  = (null == casFeat_normRxName) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxName).getCode();
-
-
-        casFeat_normDrug2 = jcas.getRequiredFeatureDE(casType, "normDrug2", "uima.cas.String", featOkTst);
-        casFeatCode_normDrug2  = (null == casFeat_normDrug2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normDrug2).getCode();
-
-
-        casFeat_normRxType2 = jcas.getRequiredFeatureDE(casType, "normRxType2", "uima.cas.String", featOkTst);
-        casFeatCode_normRxType2  = (null == casFeat_normRxType2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxType2).getCode();
-
-
-        casFeat_normRxCui2 = jcas.getRequiredFeatureDE(casType, "normRxCui2", "uima.cas.String", featOkTst);
-        casFeatCode_normRxCui2  = (null == casFeat_normRxCui2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxCui2).getCode();
-
-
-        casFeat_normRxName2 = jcas.getRequiredFeatureDE(casType, "normRxName2", "uima.cas.String", featOkTst);
-        casFeatCode_normRxName2  = (null == casFeat_normRxName2) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_normRxName2).getCode();
-
-
-        casFeat_FormRxCui = jcas.getRequiredFeatureDE(casType, "formRxCui", "uima.cas.String", featOkTst);
-        casFeatCode_FormRxCui  = (null == casFeat_FormRxCui) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_FormRxCui).getCode();
-
-
-        casFeat_Brand = jcas.getRequiredFeatureDE(casType, "brand", "uima.cas.String", featOkTst);
-        casFeatCode_Brand  = (null == casFeat_Brand) ? JCas.INVALID_FEATURE_CODE : ((FeatureImpl)casFeat_Brand).getCode();
-    }
+  }
 }
 
 

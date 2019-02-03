@@ -1,35 +1,32 @@
 /*******************************************************************************
- * Copyright: (c)  2013  Mayo Foundation for Medical Education and 
- *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
- *  triple-shield Mayo logo are trademarks and service marks of MFMER.
- *   
- *  Except as contained in the copyright notice above, or as used to identify 
- *  MFMER as the author of this software, the trade names, trademarks, service
- *  marks, or product names of the copyright holder shall not be used in
- *  advertising, promotion or otherwise in connection with this software without
- *  prior written authorization of the copyright holder.
- *     
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *     
- *  http://www.apache.org/licenses/LICENSE-2.0 
- *     
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and 
- *  limitations under the License. 
- *******************************************************************************/
+ * Copyright: (c)  2013  Mayo Foundation for Medical Education and
+ * Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+ * triple-shield Mayo logo are trademarks and service marks of MFMER.
+ *
+ * Except as contained in the copyright notice above, or as used to identify
+ * MFMER as the author of this software, the trade names, trademarks, service
+ * marks, or product names of the copyright holder shall not be used in
+ * advertising, promotion or otherwise in connection with this software without
+ * prior written authorization of the copyright holder.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-/* First created by JCasGen Mon Sep 30 15:04:17 CDT 2013 */
+/* First created by JCasGen Sun Feb 03 22:13:25 SGT 2019 */
 package org.ohnlp.typesystem.type.structured;
 
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JCasRegistry;
-import org.apache.uima.cas.impl.CASImpl;
-import org.apache.uima.cas.impl.FSGenerator;
-import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.cas.impl.TypeImpl;
 import org.apache.uima.cas.Type;
 import org.apache.uima.cas.impl.FeatureImpl;
@@ -37,28 +34,9 @@ import org.apache.uima.cas.Feature;
 import org.apache.uima.jcas.cas.TOP_Type;
 
 /** Information about the caregiving setting for the clinical document.  Typically comes from structured metadata.
- * Updated by JCasGen Mon Sep 30 15:04:17 CDT 2013
+ * Updated by JCasGen Sun Feb 03 22:13:25 SGT 2019
  * @generated */
 public class SourceData_Type extends TOP_Type {
-  /** @generated */
-  @Override
-  protected FSGenerator getFSGenerator() {return fsGenerator;}
-  /** @generated */
-  private final FSGenerator fsGenerator = 
-    new FSGenerator() {
-      public FeatureStructure createFS(int addr, CASImpl cas) {
-  			 if (SourceData_Type.this.useExistingInstance) {
-  			   // Return eq fs instance if already created
-  		     FeatureStructure fs = SourceData_Type.this.jcas.getJfsFromCaddr(addr);
-  		     if (null == fs) {
-  		       fs = new SourceData(addr, SourceData_Type.this);
-  			   SourceData_Type.this.jcas.putJfsFromCaddr(addr, fs);
-  			   return fs;
-  		     }
-  		     return fs;
-        } else return new SourceData(addr, SourceData_Type.this);
-  	  }
-    };
   /** @generated */
   @SuppressWarnings ("hiding")
   public final static int typeIndexID = SourceData.typeIndexID;
@@ -71,13 +49,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_noteTypeCode;
   /** @generated */
   final int     casFeatCode_noteTypeCode;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getNoteTypeCode(int addr) {
         if (featOkTst && casFeat_noteTypeCode == null)
       jcas.throwFeatMissing("noteTypeCode", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_noteTypeCode);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setNoteTypeCode(int addr, String v) {
         if (featOkTst && casFeat_noteTypeCode == null)
       jcas.throwFeatMissing("noteTypeCode", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -89,13 +73,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_noteSubTypeCode;
   /** @generated */
   final int     casFeatCode_noteSubTypeCode;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getNoteSubTypeCode(int addr) {
         if (featOkTst && casFeat_noteSubTypeCode == null)
       jcas.throwFeatMissing("noteSubTypeCode", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_noteSubTypeCode);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setNoteSubTypeCode(int addr, String v) {
         if (featOkTst && casFeat_noteSubTypeCode == null)
       jcas.throwFeatMissing("noteSubTypeCode", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -107,13 +97,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_authorSpecialty;
   /** @generated */
   final int     casFeatCode_authorSpecialty;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getAuthorSpecialty(int addr) {
         if (featOkTst && casFeat_authorSpecialty == null)
       jcas.throwFeatMissing("authorSpecialty", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_authorSpecialty);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setAuthorSpecialty(int addr, String v) {
         if (featOkTst && casFeat_authorSpecialty == null)
       jcas.throwFeatMissing("authorSpecialty", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -125,13 +121,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_documentStandard;
   /** @generated */
   final int     casFeatCode_documentStandard;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getDocumentStandard(int addr) {
         if (featOkTst && casFeat_documentStandard == null)
       jcas.throwFeatMissing("documentStandard", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_documentStandard);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setDocumentStandard(int addr, String v) {
         if (featOkTst && casFeat_documentStandard == null)
       jcas.throwFeatMissing("documentStandard", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -143,13 +145,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceInstanceId;
   /** @generated */
   final int     casFeatCode_sourceInstanceId;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getSourceInstanceId(int addr) {
         if (featOkTst && casFeat_sourceInstanceId == null)
       jcas.throwFeatMissing("sourceInstanceId", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_sourceInstanceId);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceInstanceId(int addr, String v) {
         if (featOkTst && casFeat_sourceInstanceId == null)
       jcas.throwFeatMissing("sourceInstanceId", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -161,13 +169,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceRevisionNbr;
   /** @generated */
   final int     casFeatCode_sourceRevisionNbr;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public int getSourceRevisionNbr(int addr) {
         if (featOkTst && casFeat_sourceRevisionNbr == null)
       jcas.throwFeatMissing("sourceRevisionNbr", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getIntValue(addr, casFeatCode_sourceRevisionNbr);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceRevisionNbr(int addr, int v) {
         if (featOkTst && casFeat_sourceRevisionNbr == null)
       jcas.throwFeatMissing("sourceRevisionNbr", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -179,13 +193,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceRevisionDate;
   /** @generated */
   final int     casFeatCode_sourceRevisionDate;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getSourceRevisionDate(int addr) {
         if (featOkTst && casFeat_sourceRevisionDate == null)
       jcas.throwFeatMissing("sourceRevisionDate", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_sourceRevisionDate);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceRevisionDate(int addr, String v) {
         if (featOkTst && casFeat_sourceRevisionDate == null)
       jcas.throwFeatMissing("sourceRevisionDate", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -197,13 +217,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceOriginalDate;
   /** @generated */
   final int     casFeatCode_sourceOriginalDate;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getSourceOriginalDate(int addr) {
         if (featOkTst && casFeat_sourceOriginalDate == null)
       jcas.throwFeatMissing("sourceOriginalDate", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_sourceOriginalDate);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceOriginalDate(int addr, String v) {
         if (featOkTst && casFeat_sourceOriginalDate == null)
       jcas.throwFeatMissing("sourceOriginalDate", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -215,13 +241,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceInstitution;
   /** @generated */
   final int     casFeatCode_sourceInstitution;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getSourceInstitution(int addr) {
         if (featOkTst && casFeat_sourceInstitution == null)
       jcas.throwFeatMissing("sourceInstitution", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_sourceInstitution);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceInstitution(int addr, String v) {
         if (featOkTst && casFeat_sourceInstitution == null)
       jcas.throwFeatMissing("sourceInstitution", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -233,13 +265,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceEncounterId;
   /** @generated */
   final int     casFeatCode_sourceEncounterId;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getSourceEncounterId(int addr) {
         if (featOkTst && casFeat_sourceEncounterId == null)
       jcas.throwFeatMissing("sourceEncounterId", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_sourceEncounterId);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceEncounterId(int addr, String v) {
         if (featOkTst && casFeat_sourceEncounterId == null)
       jcas.throwFeatMissing("sourceEncounterId", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -251,13 +289,19 @@ public class SourceData_Type extends TOP_Type {
   final Feature casFeat_sourceApplication;
   /** @generated */
   final int     casFeatCode_sourceApplication;
-  /** @generated */ 
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @return the feature value 
+   */ 
   public String getSourceApplication(int addr) {
         if (featOkTst && casFeat_sourceApplication == null)
       jcas.throwFeatMissing("sourceApplication", "org.ohnlp.typesystem.type.structured.SourceData");
     return ll_cas.ll_getStringValue(addr, casFeatCode_sourceApplication);
   }
-  /** @generated */    
+  /** @generated
+   * @param addr low level Feature Structure reference
+   * @param v value to set 
+   */    
   public void setSourceApplication(int addr, String v) {
         if (featOkTst && casFeat_sourceApplication == null)
       jcas.throwFeatMissing("sourceApplication", "org.ohnlp.typesystem.type.structured.SourceData");
@@ -268,7 +312,10 @@ public class SourceData_Type extends TOP_Type {
 
 
   /** initialize variables to correspond with Cas Type and Features
-	* @generated */
+	 * @generated
+	 * @param jcas JCas
+	 * @param casType Type 
+	 */
   public SourceData_Type(JCas jcas, Type casType) {
     super(jcas, casType);
     casImpl.getFSClassRegistry().addGeneratorForType((TypeImpl)this.casType, getFSGenerator());
