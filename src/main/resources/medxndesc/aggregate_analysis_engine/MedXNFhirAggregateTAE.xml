@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ~ Copyright: (c)  2013  Mayo Foundation for Medical Education and
+  ~ Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+  ~ triple-shield Mayo logo are trademarks and service marks of MFMER.
+  ~
+  ~ Except as contained in the copyright notice above, or as used to identify
+  ~ MFMER as the author of this software, the trade names, trademarks, service
+  ~ marks, or product names of the copyright holder shall not be used in
+  ~ advertising, promotion or otherwise in connection with this software without
+  ~ prior written authorization of the copyright holder.
+  ~
+  ~ Copyright (c) 2018-2019. Leong Hui Wong
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+<analysisEngineDescription xmlns="http://uima.apache.org/resourceSpecifier">
+    <frameworkImplementation>org.apache.uima.java</frameworkImplementation>
+    <primitive>false</primitive>
+    <delegateAnalysisEngineSpecifiers>
+        <delegateAnalysisEngine key="ChunkerAE">
+            <import name="org.ohnlp.opennlp.aes.ChunkerAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="RuleSectionAE">
+            <import name="org.ohnlp.medtagger.aes.RuleSectionAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="POSTaggerAE">
+            <import name="org.ohnlp.opennlp.aes.POSTaggerAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="TokenizerAE">
+            <import name="org.ohnlp.opennlp.aes.TokenizerAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="SentenceDetectorAE">
+            <import name="org.ohnlp.opennlp.aes.SentenceDetectorAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="LineSentenceDetectorAE">
+            <import name="org.ohnlp.medtagger.aes.LineSentenceDetectorAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="FhirACLookupDrugAE">
+            <import name="org.ohnlp.medxn.aes.FhirACLookupDrugAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="MedAttrAE">
+            <import name="org.ohnlp.medxn.aes.MedAttrAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="FhirACLookupDrugFormAE">
+            <import name="org.ohnlp.medxn.aes.FhirACLookupDrugFormAE"/>
+        </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="FhirMedExtAE">
+            <import name="org.ohnlp.medxn.aes.FhirMedExtAE"/>
+        </delegateAnalysisEngine>
+    </delegateAnalysisEngineSpecifiers>
+    <analysisEngineMetaData>
+        <name>MedXNAggregateTAE</name>
+        <description/>
+        <version>1.0</version>
+        <vendor/>
+        <configurationParameters searchStrategy="language_fallback">
+            <configurationParameter>
+                <name>FHIR_SERVER_URL</name>
+                <description>Configures the STU3 endpoint for the FHIR client in the following format:
+                    http://&lt;hostname&gt;:&lt;port&gt;/baseDstu3
+                </description>
+                <type>String</type>
+                <multiValued>false</multiValued>
+                <mandatory>true</mandatory>
+                <overrides>
+                    <parameter>FhirACLookupDrugAE/FHIR_SERVER_URL</parameter>
+                    <parameter>MedAttrAE/FHIR_SERVER_URL</parameter>
+                    <parameter>FhirACLookupDrugFormAE/FHIR_SERVER_URL</parameter>
+                    <parameter>FhirMedExtAE/FHIR_SERVER_URL</parameter>
+                </overrides>
+            </configurationParameter>
+            <configurationParameter>
+                <name>TIMEOUT_SEC</name>
+                <description>Configures the socket timeout duration for the FHIR client</description>
+                <type>Integer</type>
+                <multiValued>false</multiValued>
+                <mandatory>true</mandatory>
+                <overrides>
+                    <parameter>FhirACLookupDrugAE/TIMEOUT_SEC</parameter>
+                    <parameter>MedAttrAE/TIMEOUT_SEC</parameter>
+                    <parameter>FhirACLookupDrugFormAE/TIMEOUT_SEC</parameter>
+                    <parameter>FhirMedExtAE/TIMEOUT_SEC</parameter>
+                </overrides>
+            </configurationParameter>
+        </configurationParameters>
+        <configurationParameterSettings>
+            <nameValuePair>
+                <name>FHIR_SERVER_URL</name>
+                <value>
+                    <string>http://server:port/baseDstu3</string>
+                </value>
+            </nameValuePair>
+            <nameValuePair>
+                <name>TIMEOUT_SEC</name>
+                <value>
+                    <integer>60</integer>
+                </value>
+            </nameValuePair>
+        </configurationParameterSettings>
+        <flowConstraints>
+            <fixedFlow>
+                <node>SentenceDetectorAE</node>
+                <node>TokenizerAE</node>
+                <node>POSTaggerAE</node>
+                <node>ChunkerAE</node>
+                <node>LineSentenceDetectorAE</node>
+                <node>RuleSectionAE</node>
+                <node>FhirACLookupDrugAE</node>
+                <node>MedAttrAE</node>
+                <node>FhirMedExtAE</node>
+                <node>FhirACLookupDrugFormAE</node>
+            </fixedFlow>
+        </flowConstraints>
+        <typePriorities>
+            <priorityList>
+                <type>org.ohnlp.typesystem.type.textspan.Segment</type>
+                <type>org.ohnlp.typesystem.type.textspan.Sentence</type>
+                <type>org.ohnlp.typesystem.type.syntax.BaseToken</type>
+            </priorityList>
+        </typePriorities>
+        <fsIndexCollection/>
+        <capabilities>
+            <capability>
+                <inputs/>
+                <outputs/>
+                <languagesSupported/>
+            </capability>
+        </capabilities>
+        <operationalProperties>
+            <modifiesCas>true</modifiesCas>
+            <multipleDeploymentAllowed>true</multipleDeploymentAllowed>
+            <outputsNewCASes>false</outputsNewCASes>
+        </operationalProperties>
+    </analysisEngineMetaData>
+    <resourceManagerConfiguration>
+        <externalResources>
+            <externalResource>
+                <name>section_map</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:medtaggerresources/sectag/SecTag.section.txt</fileUrl>
+                </fileResourceSpecifier>
+            </externalResource>
+            <externalResource>
+                <name>TokenModel</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:opennlpresources/models-1.5/en-token.bin</fileUrl>
+                </fileResourceSpecifier>
+                <implementationName>opennlp.uima.tokenize.TokenizerModelResourceImpl</implementationName>
+            </externalResource>
+            <externalResource>
+                <name>SentenceModel</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:opennlpresources/models-1.5/en-sent.bin</fileUrl>
+                </fileResourceSpecifier>
+                <implementationName>opennlp.uima.sentdetect.SentenceModelResourceImpl</implementationName>
+            </externalResource>
+            <externalResource>
+                <name>ChunkerModel</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:opennlpresources/mayomodels/chunk-model.claims-1.5.zip</fileUrl>
+                </fileResourceSpecifier>
+                <implementationName>opennlp.uima.chunker.ChunkerModelResourceImpl</implementationName>
+            </externalResource>
+            <externalResource>
+                <name>PosModel</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:opennlpresources/mayomodels/mayo-pos.zip</fileUrl>
+                </fileResourceSpecifier>
+                <implementationName>opennlp.uima.postag.POSModelResourceImpl</implementationName>
+            </externalResource>
+            <externalResource>
+                <name>openclass</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:medtaggerresources/lvg/openclasswords.txt</fileUrl>
+                </fileResourceSpecifier>
+            </externalResource>
+            <externalResource>
+                <name>lvg_dict</name>
+                <description/>
+                <fileResourceSpecifier>
+                    <fileUrl>file:medtaggerresources/lvg/LRAGR_2011AB</fileUrl>
+                </fileResourceSpecifier>
+            </externalResource>
+            <externalResource>
+                <name>regExPatterns</name>
+                <description>regular expressions of drug attributes</description>
+                <fileResourceSpecifier>
+                    <fileUrl>file:medxnresources/regExPatterns.txt</fileUrl>
+                </fileResourceSpecifier>
+            </externalResource>
+        </externalResources>
+        <externalResourceBindings>
+            <externalResourceBinding>
+                <key>RuleSectionAE/section_map</key>
+                <resourceName>section_map</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>RuleSectionAE/lvg_dict</key>
+                <resourceName>lvg_dict</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>RuleSectionAE/openclass</key>
+                <resourceName>openclass</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>ChunkerAE/opennlp.uima.ModelName</key>
+                <resourceName>ChunkerModel</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>POSTaggerAE/opennlp.uima.ModelName</key>
+                <resourceName>PosModel</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>TokenizerAE/opennlp.uima.ModelName</key>
+                <resourceName>TokenModel</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>SentenceDetectorAE/opennlp.uima.ModelName</key>
+                <resourceName>SentenceModel</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>MedAttrAE/regExPatterns</key>
+                <resourceName>regExPatterns</resourceName>
+            </externalResourceBinding>
+        </externalResourceBindings>
+    </resourceManagerConfiguration>
+</analysisEngineDescription>
