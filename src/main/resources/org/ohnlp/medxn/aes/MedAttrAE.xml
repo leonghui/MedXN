@@ -8,8 +8,37 @@
     <description>medication attribute tagger using regEx</description>
     <version>1.0</version>
     <vendor/>
-    <configurationParameters searchStrategy="language_fallback"/>
-    <configurationParameterSettings/>
+        <configurationParameters searchStrategy="language_fallback">
+      <configurationParameter>
+        <name>FHIR_SERVER_URL</name>
+        <description>Configures the STU3 endpoint for the FHIR client in the following format:
+http://&lt;hostname&gt;:&lt;port&gt;/baseDstu3</description>
+        <type>String</type>
+        <multiValued>false</multiValued>
+        <mandatory>true</mandatory>
+      </configurationParameter>
+      <configurationParameter>
+        <name>TIMEOUT_SEC</name>
+        <description>Configures the socket timeout duration for the FHIR client</description>
+        <type>Integer</type>
+        <multiValued>false</multiValued>
+        <mandatory>true</mandatory>
+      </configurationParameter>
+    </configurationParameters>
+        <configurationParameterSettings>
+      <nameValuePair>
+        <name>FHIR_SERVER_URL</name>
+        <value>
+          <string>http://127.0.0.1:80/baseDstu3</string>
+        </value>
+      </nameValuePair>
+      <nameValuePair>
+        <name>TIMEOUT_SEC</name>
+        <value>
+          <integer>60</integer>
+        </value>
+      </nameValuePair>
+    </configurationParameterSettings>
     <typeSystemDescription>
       <imports>
         <import name="org.ohnlp.medxn.types.MedXNTypes"/>
