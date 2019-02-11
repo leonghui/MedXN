@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  ~ Copyright: (c)  2013  Mayo Foundation for Medical Education and
+  ~ Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
+  ~ triple-shield Mayo logo are trademarks and service marks of MFMER.
+  ~
+  ~ Except as contained in the copyright notice above, or as used to identify
+  ~ MFMER as the author of this software, the trade names, trademarks, service
+  ~ marks, or product names of the copyright holder shall not be used in
+  ~ advertising, promotion or otherwise in connection with this software without
+  ~ prior written authorization of the copyright holder.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+<analysisEngineDescription xmlns="http://uima.apache.org/resourceSpecifier">
+    <frameworkImplementation>org.apache.uima.java</frameworkImplementation>
+    <primitive>true</primitive>
+    <annotatorImplementationName>org.ohnlp.medxn.ae.FhirMedExtAnnotator</annotatorImplementationName>
+    <analysisEngineMetaData>
+        <name>org.ohnlp.medxn.aes.FhirMedExtAE</name>
+        <description>Associates medication attributes annotations to drug annotations</description>
+        <version>1.0</version>
+        <vendor>Leong Hui Wong</vendor>
+        <configurationParameters searchStrategy="language_fallback">
+      <configurationParameter>
+        <name>FHIR_SERVER_URL</name>
+        <description>Configures the STU3 endpoint for the FHIR client in the following format:
+http://&lt;hostname&gt;:&lt;port&gt;/baseDstu3</description>
+        <type>String</type>
+        <multiValued>false</multiValued>
+        <mandatory>true</mandatory>
+      </configurationParameter>
+      <configurationParameter>
+        <name>TIMEOUT_SEC</name>
+        <description>Configures the socket timeout duration for the FHIR client</description>
+        <type>Integer</type>
+        <multiValued>false</multiValued>
+        <mandatory>true</mandatory>
+      </configurationParameter>
+    </configurationParameters>
+        <configurationParameterSettings>
+      <nameValuePair>
+        <name>FHIR_SERVER_URL</name>
+        <value>
+          <string>http://127.0.0.1:80/baseDstu3</string>
+        </value>
+      </nameValuePair>
+      <nameValuePair>
+        <name>TIMEOUT_SEC</name>
+        <value>
+          <integer>60</integer>
+        </value>
+      </nameValuePair>
+    </configurationParameterSettings>
+        <typeSystemDescription>
+            <imports>
+                <import name="org.ohnlp.medxn.types.MedXNTypes"/>
+            </imports>
+        </typeSystemDescription>
+        <typePriorities/>
+        <fsIndexCollection/>
+        <capabilities>
+            <capability>
+                <inputs/>
+                <outputs/>
+        <languagesSupported/>
+            </capability>
+        </capabilities>
+        <operationalProperties>
+            <modifiesCas>true</modifiesCas>
+            <multipleDeploymentAllowed>true</multipleDeploymentAllowed>
+            <outputsNewCASes>false</outputsNewCASes>
+        </operationalProperties>
+    </analysisEngineMetaData>
+    <resourceManagerConfiguration/>
+</analysisEngineDescription>

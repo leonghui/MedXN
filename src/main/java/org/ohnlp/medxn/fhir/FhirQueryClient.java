@@ -1,10 +1,24 @@
+/*******************************************************************************
+ * Copyright (c) 2018-2019. Leong Hui Wong
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
+
 package org.ohnlp.medxn.fhir;
 
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
 import org.hl7.fhir.dstu3.model.*;
 
 import java.io.BufferedReader;
@@ -15,21 +29,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FhirQueryClient {
     private final FhirContext context = FhirContext.forDstu3();
-    private final String FHIR_SERVER_URL = "http://<server>:<port>/baseDstu3";
-    private final IGenericClient client = context.newRestfulGenericClient(FHIR_SERVER_URL);
+    private final IGenericClient client;
+    private final String FHIR_SERVER_URL;
     private final String cacheFolder = System.getProperty("user.dir") + File.separator + "tmp";
 
-    private FhirQueryClient() {
-        int TIMEOUT_SEC = 60;
+    private FhirQueryClient(String url, Integer timeout) {
+        FHIR_SERVER_URL = url;
+        client = context.newRestfulGenericClient(FHIR_SERVER_URL);
+        int TIMEOUT_SEC = timeout;
         context.getRestfulClientFactory().setSocketTimeout(TIMEOUT_SEC * 1000);
     }
 
-    public static FhirQueryClient createFhirQueryClient() {
-        return new FhirQueryClient();
+    public static FhirQueryClient createFhirQueryClient(String url, Integer timeout) {
+        return new FhirQueryClient(url, timeout);
     }
 
     private List<? extends Resource> getAllResources(String className) {
@@ -119,7 +137,7 @@ public class FhirQueryClient {
 
             Bundle bundle = new Bundle();
 
-            resources.forEach( resource -> bundle.addEntry().setResource(resource));
+            resources.forEach(resource -> bundle.addEntry().setResource(resource));
 
             context.newJsonParser().setPrettyPrint(true).encodeResourceToWriter(bundle, writer);
 
@@ -128,7 +146,7 @@ public class FhirQueryClient {
 
         } catch (IOException ioe) {
             System.out.println(ioe.getClass());
-            System.out.println("ERROR: Writing to " + path.toString() );
+            System.out.println("ERROR: Writing to " + path.toString());
         }
     }
 
@@ -150,19 +168,31 @@ public class FhirQueryClient {
         return Paths.get(cacheFolder + File.separator + className + ".json");
     }
 
-    public Table<String, String, String> getAllDosageForms() {
+    public Map<String, String> getDosageFormMap() {
+        Map<String, String> dosageFormMap = new LinkedHashMap<>();
 
-        // Data structure to store concept terms
-        // rxCui, tty, term
-        Table<String, String, String> doseFormTable = HashBasedTable.create();
+        getAllMedications().parallelStream()
+                .map(Medication::getForm)
+                .map(CodeableConcept::getCodingFirstRep)
+                .forEach(coding ->
+                        dosageFormMap.putIfAbsent(coding.getCode(), coding.getDisplay())
+                );
 
-        List<Medication> medications = getAllMedications();
-
-        medications.forEach( medication -> {
-            Coding formCode = medication.getForm().getCodingFirstRep();
-            doseFormTable.put(formCode.getCode(), "DF", formCode.getDisplay());
-        });
-
-        return doseFormTable;
+        return dosageFormMap;
     }
+
+/*    public ImmutableSetMultimap<String, String> getMedicationSubstanceMultimap() {
+        SetMultimap<String, String> medicationSubstanceMap = HashMultimap.create();
+
+        getAllMedications().parallelStream()
+                .forEach(medication -> {
+                    String key = medication.getCode().getCodingFirstRep().getCode();
+                    FhirQueryUtils.getIngredientsFromMedication(medication)
+                            .forEach(substance ->
+                                    medicationSubstanceMap.put(key, substance)
+                            );
+                });
+
+        return ImmutableSetMultimap.copyOf(medicationSubstanceMap);
+    }*/
 }

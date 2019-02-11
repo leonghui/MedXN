@@ -25,22 +25,8 @@
  ******************************************************************************/
 package org.ohnlp.medxn.ae;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Table;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
@@ -49,6 +35,14 @@ import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.type.MedAttr;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -68,29 +62,27 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 	// rxCui, keyword
 	private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
 
-	// Data structure to store concept terms
-	// rxCui, tty, term
-	private Table<String, String, String> conceptTable;
-
 	// data structure that stores the TRIE
 	private Trie trie;
 
 	private Map< String, List<String> > regExPat;
 
+	private FhirQueryClient queryClient;
+
 	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
 		super.initialize(uimaContext);
 		regExPat = new HashMap<>();
 
-		FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
+		// Get config parameter values
+		String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
+		int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
+		queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
-		conceptTable = queryClient.getAllDosageForms();
-
-		conceptTable.rowKeySet().forEach(rxCui -> {
-			String term = conceptTable.get(rxCui, "DF");
+		queryClient.getDosageFormMap().forEach((rxCui, term) -> {
 
 			keywordMap.put(rxCui, term.toLowerCase());
 
-			// enrich keyword map with common synonyms
+			// enrich keyword map with common abbreviations
 			keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
@@ -98,23 +90,41 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 			keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
 			keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
-
-			// enrich keyword map with common homonyms
-			keywordMap.put(rxCui, term.replaceAll("(?i)Oral", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Ophthalmic", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Otic", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Rectal", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Vaginal", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Nasal", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Sublingual", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Dry Powder", "").trim().toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Metered Dose", "").trim().toLowerCase());
-
 		});
 
-		trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
-				.addKeywords(keywordMap.values()).build();
+		List<String> commonOmittedWords = Arrays.asList(
+				"Oral",
+				"Topical",
+				"Ophthalmic",
+				"Otic",
+				"Rectal",
+				"Vaginal",
+				"Nasal",
+				"Sublingual",
+				"Dry Powder",
+				"Metered Dose"
+		);
+
+		SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
+
+		keywordMap.entries().forEach( entry -> {
+			commonOmittedWords.forEach( word -> {
+				Pattern pattern = Pattern.compile(word, Pattern.CASE_INSENSITIVE);
+				Matcher matcher = pattern.matcher(entry.getValue());
+				if (matcher.find()) {
+					additionalKeywords.put(entry.getKey(), matcher.replaceAll("").trim());
+				}
+			});
+		});
+
+		keywordMap.putAll(additionalKeywords);
+
+		trie = Trie.builder()
+				.ignoreCase()
+				.ignoreOverlaps()
+				.onlyWholeWords()
+				.addKeywords(keywordMap.values())
+				.build();
 
 		try {
 			InputStream in = getContext().getResourceAsStream("regExPatterns");
