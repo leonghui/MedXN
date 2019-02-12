@@ -58,6 +58,9 @@
         <delegateAnalysisEngine key="FhirMedExtAE">
             <import name="org.ohnlp.medxn.aes.FhirMedExtAE"/>
         </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="FhirMedStrengthAE">
+            <import name="org.ohnlp.medxn.aes.FhirMedStrengthAE"/>
+        </delegateAnalysisEngine>
     </delegateAnalysisEngineSpecifiers>
     <analysisEngineMetaData>
         <name>MedXNAggregateTAE</name>
@@ -116,10 +119,11 @@
                 <node>ChunkerAE</node>
                 <node>LineSentenceDetectorAE</node>
                 <node>RuleSectionAE</node>
-                <node>FhirACLookupDrugAE</node>
                 <node>MedAttrAE</node>
+                <node>FhirACLookupDrugAE</node>
                 <node>FhirMedExtAE</node>
                 <node>FhirACLookupDrugFormAE</node>
+                <node>FhirMedStrengthAE</node>
             </fixedFlow>
         </flowConstraints>
         <typePriorities>
