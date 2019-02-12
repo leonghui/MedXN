@@ -116,9 +116,8 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
-        for (Annotation segment : jcas.getAnnotationIndex(Segment.type)) {
-            for (FSIterator<?> it = jcas.getAnnotationIndex(Sentence.type).subiterator(segment); it.hasNext(); ) {
-                Sentence sentence = (Sentence) it.next();
+        jcas.getAnnotationIndex(Segment.type).forEach(segment -> {
+            jcas.getAnnotationIndex(Sentence.type).subiterator(segment).forEachRemaining(sentence -> {
 
                 // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
                 String sentText = sentence.getCoveredText().toLowerCase()
@@ -142,7 +141,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                     getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
                 });
 
-                // create all ingredients mentioned
+                // create type for each ingredient mentioned
                 ingredients.trie.parseText(sentText).forEach(emit -> {
                     int begin = sentence.getBegin() + emit.getStart();
                     int end = sentence.getBegin() + emit.getEnd() + 1;
@@ -222,8 +221,8 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 }
 
                 drugs.forEach(TOP::addToIndexes);
-            }
-        }
+            });
+        });
     }
 
     class LookupTable {
