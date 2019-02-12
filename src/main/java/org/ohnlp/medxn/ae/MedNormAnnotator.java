@@ -1,4 +1,4 @@
-/*
+/*******************************************************************************
  * Copyright: (c)  2013  Mayo Foundation for Medical Education and
  *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
  *  triple-shield Mayo logo are trademarks and service marks of MFMER.
@@ -20,78 +20,33 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- */
+ *******************************************************************************/
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Table;
-import org.ahocorasick.trie.Trie;
-import org.apache.uima.UimaContext;
+import java.util.Iterator;
+
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
+import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.JFSIndexRepository;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.tcas.Annotation;
-import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medtagger.type.ConceptMention;
-import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.MedAttr;
 
-import java.util.*;
-
 /**
  * Normalize medication description string same as the RxNorm standard
- * @author Sunghwan Sohn, Leong Hui Wong
+ * @author Sunghwan Sohn
  */
 public class MedNormAnnotator extends JCasAnnotator_ImplBase {
-
-	// Data structure to store keywords
-	// rxCui, keyword
-	private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
-
-	// Data structure to store concept terms
-	// rxCui, tty, term
-	private Table<String, String, String> conceptTable;
-
-	// data structure that stores the TRIE
-	private Trie trie;
-
-	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
-		super.initialize(uimaContext);
-		FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
-
-		conceptTable = queryClient.getAllDosageForms();
-
-		conceptTable.rowKeySet().forEach(rxCui -> {
-			String term = conceptTable.get(rxCui, "DF");
-
-			keywordMap.put(rxCui, term.toLowerCase());
-
-			// enrich keyword map with common synonyms
-			keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
-
-		});
-
-		trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
-				.addKeywords(keywordMap.values()).build();
-
-	}
-
-	public void process(JCas jcas) {
+	public void process(JCas jcas) throws AnalysisEngineProcessException {
 		JFSIndexRepository indexes = jcas.getJFSIndexRepository();
+		Iterator<?> drugItr= indexes.getAnnotationIndex(Drug.type).iterator(); //all drugs
 
 		//Get the list of drugs - if drug overlaps, use the longest one
-		for (Annotation annotation : indexes.getAnnotationIndex(Drug.type)) {
-			Drug d = (Drug) annotation;
-			d.setFormRxCui(lookupDoseForm(d.getAttrs()));
+		while(drugItr.hasNext()) {
+			Drug d = (Drug) drugItr.next();
 			d.setNormDrug(normalizeDrug(d.getName(), d.getAttrs()));
 		}
 
@@ -108,7 +63,7 @@ public class MedNormAnnotator extends JCasAnnotator_ImplBase {
 	 * @param attrs medication attributes in FSArray
 	 * @return normalized medication information to the RxNorm standard
 	 */
-	private String normalizeDrug(ConceptMention med, FSArray attrs) {
+	protected String normalizeDrug(ConceptMention med, FSArray attrs) {
 		String strength="";
 		String doseForm="";
 		String route="";
@@ -126,6 +81,7 @@ public class MedNormAnnotator extends JCasAnnotator_ImplBase {
 				time=((Annotation) attrs.get(i)).getCoveredText();
 			else if(volume.equals("") && ((MedAttr) attrs.get(i)).getTag().equals("volume"))
 				volume=((Annotation) attrs.get(i)).getCoveredText();
+			else ;
 		}
 
 		//TODO update if necessary
@@ -162,18 +118,18 @@ public class MedNormAnnotator extends JCasAnnotator_ImplBase {
 		boolean isMerged = false;
 		if(med.getNormTarget().contains("::")) {
 			isMerged = true;
-			String[] nameTokens = med.getNormTarget().split("::");
-			String[] rxTokens = med.getSemGroup().split("::");
+			String[] nameToks = med.getNormTarget().split("::");
+			String[] rxToks = med.getSemGroup().split("::");
 			//this is to allow PIN or MIN
 			if(med.getSemGroup().matches("\\d+::.?IN::\\d+::BN")) {
-				in = nameTokens[0];
-				bn = nameTokens[1];
-				inRxType = rxTokens[1];
+				in = nameToks[0];
+				bn = nameToks[1];
+				inRxType = rxToks[1];
 			}
 			else if(med.getSemGroup().matches("\\d+::BN::\\d+::.?IN")) {
-				bn = nameTokens[0];
-				in = nameTokens[1];
-				inRxType = rxTokens[3];
+				bn = nameToks[0];
+				in = nameToks[1];
+				inRxType = rxToks[3];
 			}
 		}
 
@@ -181,58 +137,27 @@ public class MedNormAnnotator extends JCasAnnotator_ImplBase {
 		String normDrug="";
 		if(isMerged) {
 			normDrug = in + "<"+inRxType+">"
-					+ strength.replaceAll("(\\d+,)?\\d+(\\.\\d+)?", "$0 ")
+				+ strength.replaceAll("(\\d+,)?\\d+(\\.\\d+)?", "$0 ")
 					.replaceAll("-", "") + "<st>"
-					+ doseForm + "<df>"
-					+ bn + "<bn>";
+				+ doseForm + "<df>"
+				+ bn + "<bn>";
 		}
 		else {
 			if(!time.equals("")) normDrug = time + "<tm>";
 			else if(!volume.equals("")) normDrug = volume + "<vl>";
 
-			String[] tokens = med.getSemGroup().split("::");
-			String rxtype = tokens[1];
+			String[] toks = med.getSemGroup().split("::");
+			String rxtype = toks[1];
 
 			normDrug = normDrug
-					+ med.getNormTarget() + "<"+rxtype+">"
-					+ strength.replaceAll("(\\d+,)?\\d+(?:\\.\\d+)?", "$0 ")
+				+ med.getNormTarget() + "<"+rxtype+">"
+				+ strength.replaceAll("(\\d+,)?\\d+(?:\\.\\d+)?", "$0 ")
 					.replaceAll("-", "") + "<st>"
-					+ doseForm + "<df>";
+				+ doseForm + "<df>";
 		}
 
 		normDrug = normDrug.toLowerCase().replaceAll("\\s{2,}", " ");
 
 		return normDrug;
-	}
-
-	private String getDoseFormTerm(String rxCui) {
-		return conceptTable.get(rxCui, "DF");
-	}
-
-	private String lookupDoseForm(FSArray attributes) {
-		Set<String> formRxCuis = new LinkedHashSet<>();
-
-		attributes.forEach( attribute -> {
-			MedAttr medAttribute = (MedAttr) attribute;
-			if (medAttribute.getTag().contentEquals("form")) {
-				String doseFormText = medAttribute.getCoveredText();
-
-				String sanitizedDoseFormText = doseFormText
-						.replaceAll("\\s+", " ") // replace all whitespace characters with a space
-						.replaceAll("(\\p{Punct})", " ") // replace all punctuations with a space
-						.trim(); // remove leading and trailing whitespace;
-
-				trie.parseText(sanitizedDoseFormText).forEach(emit ->
-						keywordMap.entries()
-								.stream()
-								.filter(entry -> entry.getValue().contentEquals(emit.getKeyword()))
-								.map(Map.Entry::getKey)
-								.findFirst().ifPresent(formRxCuis::add));
-			}
-		});
-
-		Comparator<String> byTermLength = Comparator.comparingInt(cui -> getDoseFormTerm(cui).length());
-
-		return formRxCuis.stream().max(byTermLength).orElse(null);
 	}
 }

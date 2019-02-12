@@ -1,4 +1,4 @@
-/*
+/*******************************************************************************
  * Copyright: (c)  2013  Mayo Foundation for Medical Education and
  *  Research (MFMER). All rights reserved. MAYO, MAYO CLINIC, and the
  *  triple-shield Mayo logo are trademarks and service marks of MFMER.
@@ -20,144 +20,139 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
- */
+ *******************************************************************************/
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.*;
-import org.ahocorasick.trie.Trie;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.config.Configurator;
-import org.apache.uima.UimaContext;
-import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
-import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.JFSIndexRepository;
-import org.apache.uima.jcas.tcas.Annotation;
-import org.apache.uima.resource.ResourceInitializationException;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Extension;
-import org.ohnlp.medtagger.type.ConceptMention;
-import org.ohnlp.medxn.fhir.FhirQueryClient;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Vector;
+
+import org.ohnlp.typesystem.type.syntax.BaseToken;
+import org.ohnlp.typesystem.type.syntax.NumToken;
+import org.ohnlp.typesystem.type.syntax.WordToken;
 import org.ohnlp.typesystem.type.textspan.Segment;
 import org.ohnlp.typesystem.type.textspan.Sentence;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.uima.UimaContext;
+import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
+import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
+import org.apache.uima.jcas.JCas;
+import org.apache.uima.jcas.JFSIndexRepository;
+import org.apache.uima.resource.ResourceAccessException;
+import org.apache.uima.resource.ResourceInitializationException;
+import org.ohnlp.medtagger.dict.AhoCorasickDict;
+import org.ohnlp.medtagger.type.ConceptMention;
 
 /**
- * AhoCorasick string matching algorithm to find medication name Lower-cased
- * exact matching
- *
- * @author Hongfang Liu, Sunghwan Sohn, Leong Hui Wong
- */
+* AhoCorasick string matching algorithm to find medication name
+* Lower-cased exact matching
+* @author Hongfang Liu, Sunghwan Sohn
+*/
 public class ACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
-    // Data structure to store keywords
-    // rxCui, keyword
-    private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
+	// LOG4J logger based on class name
+	private Logger logger = Logger.getLogger(getClass().getName());
 
-    // Data structure to store concept terms
-    // rxCui, tty, term
-    private final Table<String, String, String> conceptTable = HashBasedTable.create();
+	//data structure that stores the TRIE
+	AhoCorasickDict btac;
 
-    // LOG4J logger based on class name
-    private final Logger logger = LogManager.getLogger(getClass().getName());
+	@Override
+	public void initialize(UimaContext aContext)
+	throws ResourceInitializationException {
+		super.initialize(aContext);
+		logger.setLevel(Level.DEBUG);
 
-    // data structure that stores the TRIE
-    private Trie trie;
 
-    @Override
-    public void initialize(UimaContext aContext) throws ResourceInitializationException {
-        super.initialize(aContext);
-        Configurator.setLevel(logger.getName(), Level.DEBUG);
+		try {
 
-        // Build Aho-Corasick trie using IN and BN
-        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient();
+			String dict = aContext.getResourceFilePath("RxNorm_BNIN");
+			btac = new AhoCorasickDict(dict);
+		} catch (ResourceAccessException e) {
+			e.printStackTrace();
+		}
+	}
 
-        queryClient
-                .getAllSubstances()
-                .forEach( substance -> {
-                    Coding coding = substance.getCode().getCodingFirstRep();
-                    keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase());
-                    conceptTable.put(coding.getCode(), "IN", coding.getDisplay());
-                });
+	@Override
+	public void process(JCas jCas) throws AnalysisEngineProcessException {
+		JFSIndexRepository indexes = jCas.getJFSIndexRepository();
+		Iterator<?> segItr = indexes.getAnnotationIndex(Segment.type)
+		.iterator();
 
-        queryClient
-                .getAllMedications()
-                .forEach( medication -> {
-                    List<Extension> brandExtensions = medication
-                            .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand");
-                    brandExtensions.forEach( brandExtension -> {
-                        CodeableConcept brandName = (CodeableConcept) brandExtension.getValue();
-                        String brandTerm = brandName.getCodingFirstRep().getDisplay();
-                        String brandCode = brandName.getCodingFirstRep().getCode();
-                        keywordMap.put(brandCode, brandTerm.toLowerCase());
-                        conceptTable.put(brandCode, "BN", brandTerm);
-                    });
-                });
+		while (segItr.hasNext()) {
+			Segment seg = (Segment) segItr.next();
 
-        trie = Trie.builder().ignoreCase().onlyWholeWordsWhiteSpaceSeparated() // exact match
-                .addKeywords(keywordMap.values()).build();
+			Iterator<?> sentItr = indexes.getAnnotationIndex(Sentence.type)
+			.subiterator(seg);
+			while (sentItr.hasNext()) {
+				ArrayList<String> lcTokens = new ArrayList<String>();
+				HashMap<Integer, Integer> begins = new HashMap<Integer, Integer>();
+				HashMap<Integer, Integer> ends = new HashMap<Integer, Integer>();
 
-    }
+				Sentence sent = (Sentence) sentItr.next();
 
-    @Override
-    public void process(JCas jCas) {
-        JFSIndexRepository indexes = jCas.getJFSIndexRepository();
+				Iterator<?> tokenItr = indexes.getAnnotationIndex(BaseToken.type)
+				.subiterator(sent);
 
-        for (Annotation annotation : indexes.getAnnotationIndex(Segment.type)) {
-            Segment seg = (Segment) annotation;
+				while (tokenItr.hasNext()) {
+					BaseToken token = (BaseToken) tokenItr.next();
 
-            Iterator<?> sentItr = indexes.getAnnotationIndex(Sentence.type).subiterator(seg);
+					if (token instanceof WordToken) {
+						lcTokens.add(((WordToken) token).getCoveredText().toLowerCase());
+						//storing the begins and ends for future use
+						begins.put(lcTokens.size() - 1, token.getBegin());
+						ends.put(lcTokens.size() - 1, token.getEnd());
+					}
+					if(token instanceof NumToken){
+						lcTokens.add(token.getCoveredText());
+						//storing the begins and ends for future use
+						begins.put(lcTokens.size() - 1, token.getBegin());
+						ends.put(lcTokens.size() - 1, token.getEnd());
+					}
 
-            while (sentItr.hasNext()) {
+				}
 
-                Sentence sent = (Sentence) sentItr.next();
+				String[] tokens = lcTokens.toArray(new String[0]);
+				ArrayList<Vector<String>> tags = new ArrayList<Vector<String>>(
+						tokens.length);
+				for (int i = 0; i < tokens.length; i++) {
+					tags.add(new Vector<String>());
+				}
+				//TODO: debug this later
+				if (tokens.length > 200)
+					continue;
 
-                // LH: Populate CAS with matched tokens
-                // TODO Retrieve code attributes from FHIR
-                // TODO Investigate downstream use of "::" and other separators
+				//debugging
+				//logger.debug(btac.root.phrase);
 
-                String sentText = sent.getCoveredText().toLowerCase()
-                        .replaceAll("\\s+", " ") // replace all whitespace characters with a space
-                        .replaceAll("(\\p{Punct})", " ") // replace all punctuations with a space
-                        //		.replaceAll("(?<=\\w+)(\\p{Punct})", " "); // replace all punctuations after a word character with a space
-                        .trim();
+				btac.find(tokens, 0, btac.root, tags);
 
-                trie.parseText(sentText)
-                        .forEach( emit -> {
-                            String rxCui = keywordMap.entries()
-                                    .stream()
-                                    .filter(entry -> entry.getValue().contentEquals(emit.getKeyword()))
-                                    .map(Map.Entry::getKey)
-                                    .findFirst()
-                                    .orElse(null);
+				//loading stuff into CAS
+				for (int count = 0; count < tags.size(); count++) {
+					for (String con : tags.get(count)) {
+						int size = Integer.parseInt(con.substring(0,
+								con.indexOf(":")));
+						int begin = begins.get(count);
+						int end = ends.get(count + size - 1);
 
-                            if (rxCui != null && !conceptTable.row(rxCui).isEmpty()) {
-
-                                int begin = sent.getBegin() + emit.getStart();
-                                int end = sent.getBegin() + emit.getEnd() + 1;
-
-                                ConceptMention neAnnot = new ConceptMention(jCas, begin, end);
-
-                                BiMap<String, String> ttyMap = HashBiMap.create(conceptTable.row(rxCui));
-
-                                conceptTable
-                                        .row(rxCui)
-                                        .values()
-                                        .forEach(term -> {
-                                            neAnnot.setNormTarget(term); // Preferred Term
-                                            neAnnot.setSemGroup(rxCui + "::" + ttyMap.inverse().get(term)); // RxCUI::TermType
-                                            neAnnot.setSentence(sent);
-                                            neAnnot.addToIndexes();
-                                        });
-                            }
-
-                        });
-            }
-        }
-    }
+						String code = con.substring(con.lastIndexOf(":") + 1);
+						String[] multiples=code.split("\\|\\|");
+						for(int multiple=0; multiple< multiples.length; multiple++){
+							String[] splits = multiples[multiple].split("\\|");
+							ConceptMention neAnnot = new ConceptMention(jCas,
+									begin, end);
+							//assign the filed in the dictionary
+							neAnnot.setNormTarget(splits[2]); //Preferred Term
+							neAnnot.setSemGroup(splits[0]+"::"+splits[1]); //RxCUI::TermType
+							neAnnot.setSentence(sent);
+							neAnnot.addToIndexes();
+						}
+					}
+				}
+			}
+		}
+	}
 }
+
+
