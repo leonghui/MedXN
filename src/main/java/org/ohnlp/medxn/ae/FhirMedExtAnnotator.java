@@ -73,13 +73,13 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 .sorted(Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd))
                 .collect(Collectors.toList());
 
-        IntStream.range(0, drugs.size()).forEach(index -> {
+        IntStream.range(0, sortedDrugs.size()).forEach(index -> {
                     LookupWindow window = new LookupWindow(jcas);
 
                     Drug drug = sortedDrugs.get(index);
                     window.setBegin(drug.getBegin());
 
-                    if (index < drugs.size() - 1) {
+                    if (index < sortedDrugs.size() - 1) {
                         Drug nextDrug = sortedDrugs.get(index + 1);
                         window.setEnd(nextDrug.getBegin() - 1);
                     } else {
