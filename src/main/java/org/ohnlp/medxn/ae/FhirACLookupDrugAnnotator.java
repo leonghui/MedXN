@@ -26,16 +26,12 @@
 
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
-import org.apache.uima.cas.FSIterator;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.cas.TOP;
-import org.apache.uima.jcas.tcas.Annotation;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -58,8 +54,8 @@ import java.util.stream.IntStream;
 
 public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
-    private final LookupTable ingredients = new LookupTable();
-    private final LookupTable brands = new LookupTable();
+    private final FhirQueryUtils.LookupTable ingredients = new FhirQueryUtils.LookupTable();
+    private final FhirQueryUtils.LookupTable brands = new FhirQueryUtils.LookupTable();
     private FhirQueryClient queryClient;
     private final Pattern punctuationsOrWhitespaces = Pattern.compile("((\\p{Punct}|\\s)+)");
 
@@ -223,14 +219,5 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 drugs.forEach(TOP::addToIndexes);
             });
         });
-    }
-
-    class LookupTable {
-        // Data structure to store keywords
-        // rxCui, keyword
-        private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
-
-        // Data structure to store the trie
-        private Trie trie;
     }
 }

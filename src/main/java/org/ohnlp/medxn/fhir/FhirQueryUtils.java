@@ -16,7 +16,9 @@
 
 package org.ohnlp.medxn.fhir;
 
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
+import org.ahocorasick.trie.Trie;
 import org.apache.uima.jcas.tcas.Annotation;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -80,5 +82,22 @@ public class FhirQueryUtils {
         return annotations.stream()
                 .map(Annotation::getCoveredText)
                 .collect(Collectors.toList());
+    }
+
+    public static class MedAttrConstants {
+        public static final String STRENGTH = "strength";
+        public static final String FORM = "form";
+        public static final String ROUTE = "route";
+        public static final String TIME = "time";
+        public static final String VOLUME = "volume";
+    }
+
+    public static class LookupTable {
+        // Data structure to store keywords
+        // rxCui, keyword
+        public final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
+
+        // Data structure to store the trie
+        public Trie trie;
     }
 }

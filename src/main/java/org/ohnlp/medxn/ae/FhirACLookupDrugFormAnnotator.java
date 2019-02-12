@@ -26,15 +26,12 @@
 
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
 import org.ahocorasick.trie.Emit;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
-import org.apache.uima.jcas.tcas.Annotation;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
@@ -46,13 +43,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 
 public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
-    private final LookupTable dosageForms = new LookupTable();
+    private final FhirQueryUtils.LookupTable dosageForms = new FhirQueryUtils.LookupTable();
     private final Pattern punctuationsOrWhitespaces = Pattern.compile("((\\p{Punct}|\\s)+)");
-    private FhirQueryClient queryClient;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -61,7 +56,7 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
         // Get config parameter values
         String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
-        queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         queryClient.getDosageFormMap().forEach((rxCui, term) -> {
 
@@ -87,36 +82,22 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
-        for (Annotation annotation : jcas.getAnnotationIndex(Drug.type)) {
+        jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
             Drug drug = (Drug) annotation;
-            FSArray attributes = drug.getAttrs();
+            FSArray attributeArray = drug.getAttrs();
 
-//            List<String> strengths = new ArrayList<>();
-            List<String> forms = new ArrayList<>();
-            List<String> routes = new ArrayList<>();
-//            List<String> times = new ArrayList<>();
-//            List<String> volumes = new ArrayList<>();
+            List<MedAttr> forms = new ArrayList<>();
+            List<MedAttr> routes = new ArrayList<>();
 
-            IntStream.range(0, attributes.size()).forEach(index -> {
-
-                MedAttr attribute = (MedAttr) attributes.get(index);
-
+            attributeArray.forEach(featureStructure -> {
+                MedAttr attribute = (MedAttr) featureStructure;
                 switch (attribute.getTag()) {
-//                    case MedAttrConstants.STRENGTH:
-//                        strengths.add(attribute.getCoveredText());
-//                        break;
-                    case MedAttrConstants.FORM:
-                        forms.add(attribute.getCoveredText());
+                    case FhirQueryUtils.MedAttrConstants.FORM:
+                        forms.add(attribute);
                         break;
-                    case MedAttrConstants.ROUTE:
-                        routes.add(attribute.getCoveredText());
+                    case FhirQueryUtils.MedAttrConstants.ROUTE:
+                        routes.add(attribute);
                         break;
-//                    case MedAttrConstants.TIME:
-//                        times.add(attribute.getCoveredText());
-//                        break;
-//                    case MedAttrConstants.VOLUME:
-//                        volumes.add(attribute.getCoveredText());
-//                        break;
                 }
 
                 AtomicBoolean oralContextFlag = new AtomicBoolean(false);
@@ -125,7 +106,8 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                 AtomicBoolean topicalContextFlag = new AtomicBoolean(false);
 
                 if (!routes.isEmpty()) {
-                    routes.forEach(route -> {
+                    routes.forEach(routeAttr -> {
+                        String route = routeAttr.getCoveredText();
                         if (route.equalsIgnoreCase("mouth") ||
                                 route.equalsIgnoreCase("oral") ||
                                 route.equalsIgnoreCase("orally") ||
@@ -159,10 +141,11 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
                 if (forms.size() > 1) {
                     dosageForm = forms.stream()
+                            .map(MedAttr::getCoveredText)
                             .max(Comparator.comparingInt(String::length))
                             .get();
                 } else if (forms.size() == 1) {
-                    dosageForm = forms.get(0);
+                    dosageForm = forms.get(0).getCoveredText();
                 }
 
                 if (!dosageForm.equals("")) {
@@ -198,23 +181,6 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                     }
                 }
             });
-        }
-    }
-
-    class MedAttrConstants {
-        static final String STRENGTH = "strength";
-        static final String FORM = "form";
-        static final String ROUTE = "route";
-        static final String TIME = "time";
-        static final String VOLUME = "volume";
-    }
-
-    class LookupTable {
-        // Data structure to store keywords
-        // rxCui, keyword
-        private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
-
-        // Data structure to store the trie
-        private Trie trie;
+        });
     }
 }
