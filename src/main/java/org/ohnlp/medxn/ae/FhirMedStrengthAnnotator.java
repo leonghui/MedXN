@@ -41,8 +41,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
+    private final Pattern digitsWithComma = Pattern.compile("(?<!\\S)\\d[\\d,.]*");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -54,7 +56,6 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
         jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
             Drug drug = (Drug) annotation;
             FSArray attributeArray = drug.getAttrs();
-            FSArray ingredientArray = drug.getIngredients();
 
             List<MedAttr> strengths = new ArrayList<>();
 
@@ -65,26 +66,49 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                 }
             });
 
-            List<Ingredient> ingredients = new ArrayList<>();
+            FSArray ingredientArray = drug.getIngredients();
 
-            ingredientArray.forEach(featureStructure -> ingredients.add((Ingredient) featureStructure));
+            if (ingredientArray != null && ingredientArray.size() >= 1) {
 
-            ingredients.forEach(ingredient -> strengths.stream()
-                    .filter(strength ->
-                            strength.getBegin() > ingredient.getEnd())
-                    .min(Comparator.comparingInt(MedAttr::getBegin))
-                    .ifPresent(closestStrength -> {
-                        Pattern digitsWithComma = Pattern.compile("(?<!\\S)\\d[\\d,.]*");
+                List<Ingredient> ingredients = new ArrayList<>();
 
-                        Matcher matcher = digitsWithComma.matcher(closestStrength.getCoveredText());
+                ingredientArray.forEach(featureStructure -> ingredients.add((Ingredient) featureStructure));
 
-                        if (matcher.find()) {
-                            ingredient.setAmountValue(Double
-                                    .parseDouble(matcher.group(0)
-                                            .replaceAll(",", "")));
-                            ingredient.setAmountUnit(matcher.replaceFirst("").trim());
-                        }
-                    }));
+                ingredients.forEach(ingredient -> strengths.stream()
+                        .filter(strength ->
+                                strength.getBegin() > ingredient.getEnd())
+                        .min(Comparator.comparingInt(MedAttr::getBegin))
+                        .ifPresent(closestStrength -> {
+                            Matcher matcher = digitsWithComma.matcher(closestStrength.getCoveredText());
+
+                            if (matcher.find()) {
+                                ingredient.setAmountValue(Double
+                                        .parseDouble(matcher.group(0)
+                                                .replaceAll(",", "")));
+                                ingredient.setAmountUnit(matcher.replaceFirst("").trim());
+                            }
+                        }));
+            } else {
+                FSArray newIngredientArray = new FSArray(jcas, strengths.size());
+
+                IntStream.range(0, strengths.size()).forEach(index -> {
+
+                    MedAttr strength = strengths.get(index);
+                    Ingredient newIngredient = new Ingredient(jcas);
+                    Matcher matcher = digitsWithComma.matcher(strength.getCoveredText());
+
+                    if (matcher.find()) {
+                        newIngredient.setAmountValue(Double
+                                .parseDouble(matcher.group(0)
+                                        .replaceAll(",", "")));
+                        newIngredient.setAmountUnit(matcher.replaceFirst("").trim());
+
+                        newIngredientArray.set(index, newIngredient);
+                    }
+                });
+
+                drug.setIngredients(newIngredientArray);
+            }
         });
     }
 }
