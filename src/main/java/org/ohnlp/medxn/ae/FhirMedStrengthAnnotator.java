@@ -59,7 +59,7 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
             FSArray ingredientArray = drug.getIngredients();
 
             if (ingredientArray != null && ingredientArray.size() >= 1) {
-
+                // for each ingredient, add the closest strength
                 List<Ingredient> ingredients = new ArrayList<>();
 
                 ingredientArray.forEach(featureStructure -> ingredients.add((Ingredient) featureStructure));
@@ -79,6 +79,7 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                             }
                         }));
             } else {
+                // if there are no ingredients (only brand), create a placeholder for each strength
                 FSArray newIngredientArray = new FSArray(jcas, strengths.size());
 
                 IntStream.range(0, strengths.size()).forEach(index -> {
