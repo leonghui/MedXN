@@ -16,21 +16,19 @@
 
 package org.ohnlp.medxn.ae;
 
+import com.google.common.collect.ImmutableList;
 import org.ahocorasick.trie.Emit;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.MedAttr;
 
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
@@ -70,108 +68,103 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                 .build();
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public void process(JCas jcas) {
         jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
             Drug drug = (Drug) annotation;
-            FSArray attributeArray = drug.getAttrs();
 
-            List<MedAttr> forms = new ArrayList<>();
-            List<MedAttr> routes = new ArrayList<>();
+            if (drug.getAttrs() != null) {
 
-            if (attributeArray != null) {
+                ImmutableList<MedAttr> forms = ImmutableList.copyOf(drug.getAttrs()).stream()
+                        .map(featureStructure -> (MedAttr) featureStructure)
+                        .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.FORM))
+                        .collect(ImmutableList.toImmutableList());
 
-                attributeArray.forEach(featureStructure -> {
-                    MedAttr attribute = (MedAttr) featureStructure;
-                    switch (attribute.getTag()) {
-                        case FhirQueryUtils.MedAttrConstants.FORM:
-                            forms.add(attribute);
-                            break;
-                        case FhirQueryUtils.MedAttrConstants.ROUTE:
-                            routes.add(attribute);
-                            break;
-                    }
+                ImmutableList<MedAttr> routes = ImmutableList.copyOf(drug.getAttrs()).stream()
+                        .map(featureStructure -> (MedAttr) featureStructure)
+                        .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE))
+                        .collect(ImmutableList.toImmutableList());
 
-                    AtomicBoolean oralContextFlag = new AtomicBoolean(false);
-                    AtomicBoolean vaginalContextFlag = new AtomicBoolean(false);
-                    AtomicBoolean rectalContextFlag = new AtomicBoolean(false);
-                    AtomicBoolean topicalContextFlag = new AtomicBoolean(false);
+                AtomicBoolean oralContextFlag = new AtomicBoolean(false);
+                AtomicBoolean vaginalContextFlag = new AtomicBoolean(false);
+                AtomicBoolean rectalContextFlag = new AtomicBoolean(false);
+                AtomicBoolean topicalContextFlag = new AtomicBoolean(false);
 
-                    if (!routes.isEmpty()) {
-                        routes.forEach(routeAttr -> {
-                            String route = routeAttr.getCoveredText();
-                            if (route.equalsIgnoreCase("mouth") ||
-                                    route.equalsIgnoreCase("oral") ||
-                                    route.equalsIgnoreCase("orally") ||
-                                    route.equalsIgnoreCase("po") ||
-                                    route.equalsIgnoreCase("p.o.")) {
-                                oralContextFlag.compareAndSet(false, true);
-                            }
-                            if (route.equalsIgnoreCase("vaginally") ||
-                                    route.equalsIgnoreCase("pv")) {
-                                vaginalContextFlag.compareAndSet(false, true);
-                            }
-                            if (route.equalsIgnoreCase("rectally") ||
-                                    route.equalsIgnoreCase("anally") ||
-                                    route.equalsIgnoreCase("pr") ||
-                                    route.equalsIgnoreCase("p.r.")) {
-                                rectalContextFlag.compareAndSet(false, true);
-                            }
-                            if (route.equalsIgnoreCase("skin") ||
-                                    route.equalsIgnoreCase("topical") ||
-                                    route.equalsIgnoreCase("topically")) {
-                                topicalContextFlag.compareAndSet(false, true);
-                            }
-                        });
-                    }
-
-                    // if more than 1 dose form is found, use the longest dose form
-                    // if 1 dose form is found, check against known dosage forms
-                    // if no matches are found, use route contexts to attempt inference
-
-                    String dosageForm = "";
-
-                    if (forms.size() > 1) {
-                        dosageForm = forms.stream()
-                                .map(MedAttr::getCoveredText)
-                                .max(Comparator.comparingInt(String::length))
-                                .get();
-                    } else if (forms.size() == 1) {
-                        dosageForm = forms.get(0).getCoveredText();
-                    }
-
-                    if (!dosageForm.equals("")) {
-                        String sanitizedDosageForm = dosageForm
-                                .replaceAll(punctuationOrWhitespace.toString(), " ");
-
-                        Emit matchedForm = null;
-
-                        if (dosageForms.trie.containsMatch(sanitizedDosageForm)) {
-                            matchedForm = dosageForms.trie.firstMatch(sanitizedDosageForm);
-
-                        } else {
-                            if (oralContextFlag.get() &&
-                                    dosageForms.trie.containsMatch("oral " + sanitizedDosageForm)) {
-                                matchedForm = dosageForms.trie.firstMatch("oral " + sanitizedDosageForm);
-                            } else if (vaginalContextFlag.get() &&
-                                    dosageForms.trie.containsMatch("vaginal " + sanitizedDosageForm)) {
-                                matchedForm = dosageForms.trie.firstMatch("vaginal " + sanitizedDosageForm);
-                            } else if (rectalContextFlag.get() &&
-                                    dosageForms.trie.containsMatch("rectal " + sanitizedDosageForm)) {
-                                matchedForm = dosageForms.trie.firstMatch("rectal " + sanitizedDosageForm);
-                            } else if (topicalContextFlag.get() &&
-                                    dosageForms.trie.containsMatch("topical " + sanitizedDosageForm)) {
-                                matchedForm = dosageForms.trie.firstMatch("topical " + sanitizedDosageForm);
-                            }
+                if (!routes.isEmpty()) {
+                    routes.forEach(routeAttr -> {
+                        String route = routeAttr.getCoveredText();
+                        if (route.equalsIgnoreCase("mouth") ||
+                                route.equalsIgnoreCase("oral") ||
+                                route.equalsIgnoreCase("orally") ||
+                                route.equalsIgnoreCase("po") ||
+                                route.equalsIgnoreCase("p.o.")) {
+                            oralContextFlag.compareAndSet(false, true);
                         }
+                        if (route.equalsIgnoreCase("vaginally") ||
+                                route.equalsIgnoreCase("pv")) {
+                            vaginalContextFlag.compareAndSet(false, true);
+                        }
+                        if (route.equalsIgnoreCase("rectally") ||
+                                route.equalsIgnoreCase("anally") ||
+                                route.equalsIgnoreCase("pr") ||
+                                route.equalsIgnoreCase("p.r.")) {
+                            rectalContextFlag.compareAndSet(false, true);
+                        }
+                        if (route.equalsIgnoreCase("skin") ||
+                                route.equalsIgnoreCase("topical") ||
+                                route.equalsIgnoreCase("topically")) {
+                            topicalContextFlag.compareAndSet(false, true);
+                        }
+                    });
+                }
 
-                        if (matchedForm != null) {
-                            String rxCui = FhirQueryUtils
-                                    .getRxCuiFromKeywordMap(dosageForms.keywordMap, matchedForm.getKeyword());
-                            drug.setForm(rxCui);
+                // if more than 1 dose form is found, use the longest dose form
+                // if 1 dose form is found, check against known dosage forms
+                // if no matches are found, use route contexts to attempt inference
+
+                String dosageForm = "";
+
+                if (forms.size() > 1) {
+                    dosageForm = forms.stream()
+                            .map(MedAttr::getCoveredText)
+                            .max(Comparator.comparingInt(String::length))
+                            .get();
+                } else if (forms.size() == 1) {
+                    dosageForm = forms.get(0).getCoveredText();
+                }
+
+                if (!dosageForm.equals("")) {
+                    String sanitizedDosageForm = dosageForm
+                            .replaceAll(punctuationOrWhitespace.toString(), " ");
+
+                    Emit matchedForm = null;
+
+                    if (dosageForms.trie.containsMatch(sanitizedDosageForm)) {
+                        matchedForm = dosageForms.trie.firstMatch(sanitizedDosageForm);
+
+                    } else {
+                        if (oralContextFlag.get() &&
+                                dosageForms.trie.containsMatch("oral " + sanitizedDosageForm)) {
+                            matchedForm = dosageForms.trie.firstMatch("oral " + sanitizedDosageForm);
+                        } else if (vaginalContextFlag.get() &&
+                                dosageForms.trie.containsMatch("vaginal " + sanitizedDosageForm)) {
+                            matchedForm = dosageForms.trie.firstMatch("vaginal " + sanitizedDosageForm);
+                        } else if (rectalContextFlag.get() &&
+                                dosageForms.trie.containsMatch("rectal " + sanitizedDosageForm)) {
+                            matchedForm = dosageForms.trie.firstMatch("rectal " + sanitizedDosageForm);
+                        } else if (topicalContextFlag.get() &&
+                                dosageForms.trie.containsMatch("topical " + sanitizedDosageForm)) {
+                            matchedForm = dosageForms.trie.firstMatch("topical " + sanitizedDosageForm);
                         }
                     }
-                });
+
+                    if (matchedForm != null) {
+                        String rxCui = FhirQueryUtils
+                                .getRxCuiFromKeywordMap(dosageForms.keywordMap, matchedForm.getKeyword());
+                        drug.setForm(rxCui);
+                    }
+                }
             }
         });
     }
