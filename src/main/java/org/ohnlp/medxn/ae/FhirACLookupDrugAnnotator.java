@@ -30,13 +30,12 @@ import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
-import org.hl7.fhir.dstu3.model.Medication;
+import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -45,12 +44,8 @@ import org.ohnlp.typesystem.type.textspan.Segment;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
@@ -111,111 +106,49 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
-        jcas.getAnnotationIndex(Segment.type).forEach(segment -> {
-            jcas.getAnnotationIndex(Sentence.type).subiterator(segment).forEachRemaining(sentence -> {
+        jcas.getAnnotationIndex(Segment.type).forEach(segment ->
+                jcas.getAnnotationIndex(Sentence.type).subiterator(segment).forEachRemaining(sentence -> {
 
-                // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
-                String sentText = sentence.getCoveredText().toLowerCase()
-                        // replace single punctuations and whitespaces with a single space
-                        .replaceAll(punctuationOrWhitespace.toString(), " ");
+                    // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
+                    String sentText = sentence.getCoveredText().toLowerCase()
+                            // replace single punctuations and whitespaces with a single space
+                            .replaceAll(punctuationOrWhitespace.toString(), " ");
 
-                List<Drug> drugs = new ArrayList<>();
-                List<Ingredient> ingredientsMentioned = new ArrayList<>();
-                List<Ingredient> ingredientsTagged = new ArrayList<>();
+                    List<Drug> drugsFound = new ArrayList<>();
+                    List<ConceptMention> conceptsFound = new ArrayList<>();
+                    List<Ingredient> ingredientsFound = new ArrayList<>();
 
-                // assume every brand mentioned refers to a drug
-                brands.trie.parseText(sentText).forEach(emit -> {
-                    int begin = sentence.getBegin() + emit.getStart();
-                    int end = sentence.getBegin() + emit.getEnd() + 1;
+                    // create Drug for each brand found
+                    brands.trie.parseText(sentText).forEach(emit -> {
+                        int begin = sentence.getBegin() + emit.getStart();
+                        int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                    Drug drug = new Drug(jcas, begin, end);
-                    drug.setBrand(emit.getKeyword());
-                    drugs.add(drug);
+                        Drug drug = new Drug(jcas, begin, end);
+                        drugsFound.add(drug);
 
-                    getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
-                });
+                        getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
+                    });
 
-                // create type for each ingredient mentioned
-                ingredients.trie.parseText(sentText).forEach(emit -> {
-                    int begin = sentence.getBegin() + emit.getStart();
-                    int end = sentence.getBegin() + emit.getEnd() + 1;
+                    // create ConceptMention and Ingredient for each ingredient found
+                    ingredients.trie.parseText(sentText).forEach(emit -> {
+                        int begin = sentence.getBegin() + emit.getStart();
+                        int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                    Ingredient ingredient = new Ingredient(jcas, begin, end);
-                    String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
-                    ingredient.setItem(rxCui);
-                    ingredientsMentioned.add(ingredient);
-                });
+                        Ingredient ingredient = new Ingredient(jcas, begin, end);
+                        String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
+                        ingredient.setItem(rxCui);
+                        ingredientsFound.add(ingredient);
 
-                // associate ingredients with brands if they are found in Medication resources
-                drugs.forEach(drug -> {
-                    Set<String> productRxCuis = FhirQueryUtils
-                            .getAllRxCuisFromKeywordMap(brands.keywordMap, drug.getBrand());
+                        ConceptMention conceptMention = new ConceptMention(jcas, begin, end);
+                        conceptsFound.add(conceptMention);
+                    });
 
-                    Set<Medication> products = FhirQueryUtils
-                            .getMedicationsFromRxCui(queryClient.getAllMedications(), productRxCuis);
+                    // add all annotations to the index for further processing
+                    drugsFound.forEach(TOP::addToIndexes);
+                    ingredientsFound.forEach(TOP::addToIndexes);
+                    conceptsFound.forEach(TOP::addToIndexes);
 
-                    Set<String> productIngredients = FhirQueryUtils.getIngredientsFromMedications(products);
-
-                    List<Ingredient> matchingIngredients = ingredientsMentioned.stream()
-                            .filter(ingredient ->
-                                    productIngredients.contains(ingredient.getItem()))
-                            .sorted(Comparator.comparingInt(Ingredient::getBegin))
-                            .collect(Collectors.toList());
-
-                    ingredientsTagged.addAll(matchingIngredients);
-
-                    if (!ingredientsTagged.isEmpty()) {
-
-                        FSArray ingredientArray = new FSArray(jcas, matchingIngredients.size());
-
-                        IntStream.range(0, matchingIngredients.size())
-                                .forEach(index -> ingredientArray.set(index, matchingIngredients.get(index)));
-
-                        drug.setIngredients(ingredientArray);
-
-                        getContext().getLogger().log(Level.INFO, "Associating ingredients: " +
-                                FhirQueryUtils.getCoveredTextFromAnnotations(matchingIngredients) +
-                                " with brand: " + drug.getCoveredText()
-                        );
-                    }
-                });
-
-                // if there are remaining ingredients, assume that they belong to the same drug
-                ingredientsMentioned.removeAll(ingredientsTagged);
-
-                if (!ingredientsMentioned.isEmpty()) {
-
-                    //  TODO: Compare all combinations of ingredients against FHIR Medication resources
-                    //  Set<Set<Ingredient>> ingredientSets = Sets.powerSet(new LinkedHashSet<>(ingredientsMentioned));
-
-                    FSArray ingredientArray = new FSArray(jcas, ingredientsMentioned.size());
-
-                    IntStream.range(0, ingredientsMentioned.size())
-                            .forEach(index -> ingredientArray.set(index, ingredientsMentioned.get(index)));
-
-                    int begin = ingredientsMentioned.stream()
-                            .map(Ingredient::getBegin)
-                            .min(Integer::compare)
-                            .orElse(0);
-
-                    int end = ingredientsMentioned.stream()
-                            .map(Ingredient::getEnd)
-                            .max(Integer::compare)
-                            .orElse(sentence.getEnd());
-
-                    Drug drug = new Drug(jcas, begin, end);
-
-                    drug.setIngredients(ingredientArray);
-
-                    drugs.add(drug);
-
-                    getContext().getLogger().log(Level.INFO, "Found ingredients: " +
-                            FhirQueryUtils.getCoveredTextFromAnnotations(ingredientsMentioned));
-
-                }
-
-                drugs.forEach(TOP::addToIndexes);
-            });
-        });
+                })
+        );
     }
 }
