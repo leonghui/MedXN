@@ -81,6 +81,7 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                                     drug.setIngredients(newIngredientArray);
 
                                 } else {
+                                    // SCENARIO 1: drug strengths are always written after drug names
                                     // look backward and assign strength to the closest ingredient
                                     Optional<Ingredient> closestIngredient = ImmutableList.copyOf(drug.getIngredients())
                                             .stream()
