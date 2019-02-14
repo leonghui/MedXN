@@ -20,7 +20,7 @@
     <annotatorImplementationName>org.ohnlp.medxn.ae.FhirMedStrengthAnnotator</annotatorImplementationName>
     <analysisEngineMetaData>
         <name>org.ohnlp.medxn.aes.FhirMedStrengthAE</name>
-        <description>Associates medication attributes annotations to drug annotations</description>
+        <description>Associates medication strength annotations to drug annotations</description>
         <version>1.0</version>
         <vendor>Leong Hui Wong</vendor>
         <configurationParameters searchStrategy="language_fallback">
