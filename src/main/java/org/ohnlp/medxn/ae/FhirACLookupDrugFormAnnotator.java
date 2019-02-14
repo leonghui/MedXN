@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
     private final FhirQueryUtils.LookupTable dosageForms = new FhirQueryUtils.LookupTable();
-    private final Pattern punctuationsOrWhitespaces = Pattern.compile("((\\p{Punct}|\\s)+)");
+    private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -140,8 +140,7 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
                 if (!dosageForm.equals("")) {
                     String sanitizedDosageForm = dosageForm
-                            .replaceAll(punctuationsOrWhitespaces.toString(), " ")
-                            .trim();
+                            .replaceAll(punctuationOrWhitespace.toString(), " ");
 
                     Emit matchedForm = null;
 

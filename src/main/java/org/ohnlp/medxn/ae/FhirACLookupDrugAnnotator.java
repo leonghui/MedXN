@@ -57,7 +57,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final FhirQueryUtils.LookupTable ingredients = new FhirQueryUtils.LookupTable();
     private final FhirQueryUtils.LookupTable brands = new FhirQueryUtils.LookupTable();
     private FhirQueryClient queryClient;
-    private final Pattern punctuationsOrWhitespaces = Pattern.compile("((\\p{Punct}|\\s)+)");
+    private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -95,8 +95,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                     if (brandExtension != null) {
                         brands.keywordMap.put(productCoding.getCode(),
                                 brandExtension.getValue().toString()
-                                        .replaceAll(punctuationsOrWhitespaces.toString(), " ")
-                                        .trim()
+                                        .replaceAll(punctuationOrWhitespace.toString(), " ")
                         );
                     }
                 });
@@ -118,8 +117,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
                 String sentText = sentence.getCoveredText().toLowerCase()
                         // replace single punctuations and whitespaces with a single space
-                        .replaceAll(punctuationsOrWhitespaces.toString(), " ")
-                        .trim();
+                        .replaceAll(punctuationOrWhitespace.toString(), " ");
 
                 List<Drug> drugs = new ArrayList<>();
                 List<Ingredient> ingredientsMentioned = new ArrayList<>();
