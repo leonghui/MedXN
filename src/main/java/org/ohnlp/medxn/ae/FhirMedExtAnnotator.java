@@ -51,34 +51,47 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
+    private ImmutableList<ConceptMention> conceptMentions;
+    private ImmutableList<MedAttr> attributes;
+    private ImmutableList<Ingredient> ingredients;
+    private ImmutableList<Sentence> sortedSentences;
+    private ImmutableList<Drug> sortedDrugs;
+    private ImmutableList<MedAttr> formsRoutesFrequencies;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
         super.initialize(uimaContext);
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public void process(JCas jcas) {
-        convertConceptMentions(jcas);
-        createLookupWindows(jcas);
-        associateAttributesAndIngredients(jcas);
-    }
-
-    @SuppressWarnings("UnstableApiUsage")
-    private void convertConceptMentions(JCas jcas) {
-        ImmutableList<ConceptMention> conceptMentions = ImmutableList.copyOf(jcas.getAnnotationIndex(ConceptMention.type));
-
-        ImmutableList<MedAttr> attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
-
-        List<Drug> drugs = new ArrayList<>();
-
-        ImmutableList<MedAttr> formsRoutesFrequencies = attributes.stream()
+        conceptMentions = ImmutableList.copyOf(jcas.getAnnotationIndex(ConceptMention.type));
+        attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
+        ingredients = ImmutableList.copyOf(jcas.getAnnotationIndex(Ingredient.type));
+        sortedSentences = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd),
+                jcas.getAnnotationIndex(Sentence.type)
+        );
+        sortedDrugs = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                jcas.getAnnotationIndex(Drug.type)
+        );
+        formsRoutesFrequencies = attributes.stream()
                 .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.FORM)
                         ||
                         attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE)
                         ||
                         attribute.getTag().equals(FhirQueryUtils.MedAttrConstants.FREQUENCY))
                 .collect(ImmutableList.toImmutableList());
+
+        convertConceptMentions(jcas);
+        createLookupWindows(jcas);
+        associateAttributesAndIngredients(jcas);
+    }
+
+    private void convertConceptMentions(JCas jcas) {
+        List<Drug> drugs = new ArrayList<>();
 
         // SCENARIO 1: drugs are always ordered with form or route or frequency
         SetMultimap<MedAttr, ConceptMention> conceptMentionsByNearestMedAttrMap = LinkedHashMultimap.create();
@@ -103,16 +116,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     private void createLookupWindows(JCas jcas) {
-        ImmutableList<Sentence> sortedSentences = ImmutableList.sortedCopyOf(
-                Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd),
-                jcas.getAnnotationIndex(Sentence.type)
-        );
-
-        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
-                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
-                jcas.getAnnotationIndex(Drug.type)
-        );
-
         IntStream.range(0, sortedSentences.size()).forEach(sentenceIndex -> {
             Sentence sentence = sortedSentences.get(sentenceIndex);
 
@@ -150,11 +153,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     private void associateAttributesAndIngredients(JCas jcas) {
-
-        ImmutableList<MedAttr> attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
-
-        ImmutableList<Ingredient> ingredients = ImmutableList.copyOf(jcas.getAnnotationIndex(Ingredient.type));
-
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
                 jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
 
