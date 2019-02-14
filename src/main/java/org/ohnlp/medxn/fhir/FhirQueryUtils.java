@@ -90,6 +90,7 @@ public class FhirQueryUtils {
         public static final String ROUTE = "route";
         public static final String TIME = "time";
         public static final String VOLUME = "volume";
+        public static final String FREQUENCY = "frequency";
     }
 
     public static class LookupTable {

@@ -26,12 +26,19 @@
 
 package org.ohnlp.medxn.ae;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
+import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.ohnlp.medtagger.type.ConceptMention;
+import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
+import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 import org.ohnlp.typesystem.type.textspan.Sentence;
@@ -51,16 +58,17 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
-        List<Sentence> sentences = new ArrayList<>();
-        jcas.getAnnotationIndex(Sentence.type).forEach(annotation -> {
-            Sentence sentence = (Sentence) annotation;
-            sentences.add(sentence);
-        });
+        convertConceptMentions(jcas);
+        createLookupWindows(jcas);
+        associateAttributesAndIngredients(jcas);
+    }
 
-        List<Drug> drugs = new ArrayList<>();
-        jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
-            Drug drug = (Drug) annotation;
-            drugs.add(drug);
+    @SuppressWarnings("UnstableApiUsage")
+    private void convertConceptMentions(JCas jcas) {
+        List<ConceptMention> conceptMentions = new ArrayList<>();
+        jcas.getAnnotationIndex(ConceptMention.type).forEach(annotation -> {
+            ConceptMention conceptMention = (ConceptMention) annotation;
+            conceptMentions.add(conceptMention);
         });
 
         List<MedAttr> attributes = new ArrayList<>();
@@ -69,32 +77,114 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             attributes.add(attribute);
         });
 
-        List<Drug> sortedDrugs = drugs.stream()
-                .sorted(Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd))
-                .collect(Collectors.toList());
+        List<Drug> drugs = new ArrayList<>();
 
-        IntStream.range(0, sortedDrugs.size()).forEach(index -> {
+        ImmutableList<MedAttr> formsRoutesFrequencies = attributes.stream()
+                .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.FORM)
+                        ||
+                        attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE)
+                        ||
+                        attribute.getTag().equals(FhirQueryUtils.MedAttrConstants.FREQUENCY))
+                .collect(ImmutableList.toImmutableList());
+
+        // SCENARIO 1: drugs are always ordered with form or route or frequency
+        SetMultimap<MedAttr, ConceptMention> conceptMentionsByNearestMedAttrMap = LinkedHashMultimap.create();
+
+        conceptMentions.forEach(conceptMention -> formsRoutesFrequencies.stream()
+                .filter(attribute ->
+                        attribute.getBegin() > conceptMention.getEnd())
+                .min(Comparator.comparingInt(MedAttr::getBegin))
+                .ifPresent(closestAttribute ->
+                        conceptMentionsByNearestMedAttrMap.put(closestAttribute, conceptMention)
+                ));
+
+        conceptMentionsByNearestMedAttrMap.asMap().forEach((key, value) -> value.stream()
+                .min(Comparator.comparingInt(ConceptMention::getBegin))
+                .ifPresent(conceptMention -> {
+                            Drug drug = new Drug(jcas, conceptMention.getBegin(), conceptMention.getEnd());
+                            drugs.add(drug);
+                        }
+                ));
+
+        drugs.forEach(TOP::addToIndexes);
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private void createLookupWindows(JCas jcas) {
+        List<Sentence> sentences = new ArrayList<>();
+        jcas.getAnnotationIndex(Sentence.type).forEach(annotation -> {
+            Sentence sentence = (Sentence) annotation;
+            sentences.add(sentence);
+        });
+
+        // TODO switch to ImmutableList.sortedCopyOf
+        ImmutableList<Sentence> sortedSentences = sentences.stream()
+                .sorted(Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd))
+                .collect(ImmutableList.toImmutableList());
+
+        List<Drug> drugs = new ArrayList<>();
+        jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
+            Drug drug = (Drug) annotation;
+            drugs.add(drug);
+        });
+
+        ImmutableList<Drug> sortedDrugs = drugs.stream()
+                .sorted(Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd))
+                .collect(ImmutableList.toImmutableList());
+
+        IntStream.range(0, sortedSentences.size()).forEach(sentenceIndex -> {
+            Sentence sentence = sortedSentences.get(sentenceIndex);
+
+            IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
+
+                Drug drug = sortedDrugs.get(drugIndex);
+
+                // only consider drugs that begin, but not necessarily end, in the same sentence
+                if (drug.getBegin() >= sentence.getBegin() && drug.getBegin() <= sentence.getEnd()) {
+
                     LookupWindow window = new LookupWindow(jcas);
 
-                    Drug drug = sortedDrugs.get(index);
                     window.setBegin(drug.getBegin());
 
-                    if (index < sortedDrugs.size() - 1) {
-                        Drug nextDrug = sortedDrugs.get(index + 1);
-                        window.setEnd(nextDrug.getBegin() - 1);
-                    } else {
-                        int end = sentences.stream()
-                                .filter(sentence ->
-                                        drug.getBegin() >= sentence.getBegin() &&
-                                                drug.getEnd() <= sentence.getEnd())
-                                .map(Sentence::getEnd)
-                                .findFirst()
-                                .orElse(Integer.MAX_VALUE);
+                    // if we have not reached the last drug or last sentence
+                    if (drugIndex < sortedDrugs.size() - 1 && sentenceIndex < sortedSentences.size() - 1) {
+                        Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+                        Sentence nextSentence = sortedSentences.get(sentenceIndex + 1);
 
-                        window.setEnd(end);
+                        // end the drug in the next sentence if the next drug begins in further sentences
+                        if (nextDrug.getBegin() > nextSentence.getEnd()) {
+                            window.setEnd(nextSentence.getEnd());
+                        } else {
+                            window.setEnd(nextDrug.getBegin() - 1);
+                        }
+                    } else {
+                        window.setEnd(sentence.getEnd());
                     }
 
                     window.addToIndexes();
+                }
+            });
+        });
+    }
+
+    private void associateAttributesAndIngredients(JCas jcas) {
+
+        // TODO switch to ImmutableList.copyOf
+        List<MedAttr> attributes = new ArrayList<>();
+        jcas.getAnnotationIndex(MedAttr.type).forEach(annotation -> {
+            MedAttr attribute = (MedAttr) annotation;
+            attributes.add(attribute);
+        });
+
+        List<Ingredient> ingredients = new ArrayList<>();
+        jcas.getAnnotationIndex(Ingredient.type).forEach(annotation -> {
+            Ingredient ingredient = (Ingredient) annotation;
+            ingredients.add(ingredient);
+        });
+
+        jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
+                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
+                    Drug drug = (Drug) annotation;
 
                     List<MedAttr> filteredAttributes = attributes.stream()
                             .filter(attribute ->
@@ -105,12 +195,28 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
 
                     IntStream.range(0, filteredAttributes.size())
-                            .forEach(attributeIndex ->
-                                    attributesArray.set(attributeIndex, filteredAttributes.get(attributeIndex))
+                            .forEach(index ->
+                                    attributesArray.set(index, filteredAttributes.get(index))
                             );
 
                     drug.setAttrs(attributesArray);
-                }
+
+                    List<Ingredient> filteredIngredients = ingredients.stream()
+                            .filter(ingredient ->
+                                    ingredient.getBegin() >= window.getBegin() &&
+                                            ingredient.getEnd() <= window.getEnd())
+                            .collect(Collectors.toList());
+
+                    FSArray ingredientArray = new FSArray(jcas, filteredIngredients.size());
+
+                    IntStream.range(0, filteredIngredients.size())
+                            .forEach(index ->
+                                    filteredIngredients.set(index, filteredIngredients.get(index))
+                            );
+
+                    drug.setIngredients(ingredientArray);
+
+                })
         );
     }
 }
