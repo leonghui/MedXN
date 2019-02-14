@@ -31,6 +31,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
+import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.cas.TOP;
@@ -51,7 +52,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
-    private ImmutableList<ConceptMention> conceptMentions;
+    private ImmutableList<ConceptMention> concepts;
     private ImmutableList<MedAttr> attributes;
     private ImmutableList<Ingredient> ingredients;
     private ImmutableList<Sentence> sortedSentences;
@@ -65,7 +66,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     @SuppressWarnings("UnstableApiUsage")
     @Override
     public void process(JCas jcas) {
-        conceptMentions = ImmutableList.copyOf(jcas.getAnnotationIndex(ConceptMention.type));
+        concepts = ImmutableList.copyOf(jcas.getAnnotationIndex(ConceptMention.type));
         attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
         ingredients = ImmutableList.copyOf(jcas.getAnnotationIndex(Ingredient.type));
         sortedSentences = ImmutableList.sortedCopyOf(
@@ -88,29 +89,51 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private void convertConceptMentions(JCas jcas) {
         List<Drug> drugs = new ArrayList<>();
 
-        // SCENARIO 1: drugs are always ordered with form or route or frequency
-        SetMultimap<MedAttr, ConceptMention> conceptMentionsByNearestMedAttrMap = LinkedHashMultimap.create();
+        // TODO merge concepts and brands
 
-        conceptMentions.forEach(conceptMention -> formsRoutesFrequencies.stream()
+        // SCENARIO 1: if ingredients are ordered with form or route or frequency towards the end (terminator)
+        SetMultimap<MedAttr, ConceptMention> conceptsByClosestTerminator = LinkedHashMultimap.create();
+
+        concepts.forEach(concept -> formsRoutesFrequencies.stream()
                 .filter(attribute ->
-                        attribute.getBegin() > conceptMention.getEnd())
+                        attribute.getBegin() > concept.getEnd())
                 .min(Comparator.comparingInt(MedAttr::getBegin))
                 .ifPresent(closestAttribute ->
-                        conceptMentionsByNearestMedAttrMap.put(closestAttribute, conceptMention)
+                        conceptsByClosestTerminator.put(closestAttribute, concept)
                 ));
 
-        conceptMentionsByNearestMedAttrMap.asMap().forEach((key, value) -> value.stream()
-                .min(Comparator.comparingInt(ConceptMention::getBegin))
-                .ifPresent(conceptMention -> {
-                            Drug drug = new Drug(jcas, conceptMention.getBegin(), conceptMention.getEnd());
+        // SCENARIO 1.1: prioritize the ingredient closest to the terminator
+        conceptsByClosestTerminator.asMap().forEach((key, value) -> value.stream()
+                .max(Comparator.comparingInt(ConceptMention::getBegin))
+                .ifPresent(concept -> {
+                            Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
                             drugs.add(drug);
                         }
                 ));
+
+        // SCENARIO 2: ingredients ordered without terminators are standalone drugs
+        IntStream.range(0, concepts.size()).forEach(index -> {
+            ConceptMention concept = concepts.get(index);
+
+            if (index < concepts.size() - 1) {
+                ConceptMention nextConcept = concepts.get(index + 1);
+
+                boolean terminatorFound = formsRoutesFrequencies.stream().anyMatch(attribute ->
+                        attribute.getBegin() > concept.getEnd() &&
+                                attribute.getEnd() < nextConcept.getBegin());
+
+                if (!terminatorFound) {
+                    Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
+                    drugs.add(drug);
+                }
+            }
+        });
 
         drugs.forEach(TOP::addToIndexes);
     }
 
     private void createLookupWindows(JCas jcas) {
+        // always generate a new instance of drug list because the index has been updated
         ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
                 jcas.getAnnotationIndex(Drug.type)
