@@ -131,8 +131,17 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     window.setBegin(drug.getBegin());
 
                     // TODO consider last attribute
-                    // if we have not reached the last drug or last sentence
-                    if (drugIndex < sortedDrugs.size() - 1 && sentenceIndex < sortedSentences.size() - 1) {
+                    // if there is only 1 sentence
+                    if (sortedSentences.size() == 1) {
+                        if (drugIndex < sortedDrugs.size() - 1) {
+                            Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+                            window.setEnd(nextDrug.getBegin() - 1);
+                        } else {
+                            window.setEnd(sentence.getEnd());
+                        }
+
+                        // if we have not reached the last drug or last sentence
+                    } else if (drugIndex < sortedDrugs.size() - 1 && sentenceIndex < sortedSentences.size() - 1) {
                         Drug nextDrug = sortedDrugs.get(drugIndex + 1);
                         Sentence nextSentence = sortedSentences.get(sentenceIndex + 1);
 
