@@ -49,56 +49,61 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
 
             List<MedAttr> strengths = new ArrayList<>();
 
-            attributeArray.forEach(featureStructure -> {
-                MedAttr attribute = (MedAttr) featureStructure;
-                if (FhirQueryUtils.MedAttrConstants.STRENGTH.contentEquals(attribute.getTag())) {
-                    strengths.add(attribute);
-                }
-            });
-
-            FSArray ingredientArray = drug.getIngredients();
-
-            if (ingredientArray != null && ingredientArray.size() >= 1) {
-                // for each ingredient, add the closest strength
-                List<Ingredient> ingredients = new ArrayList<>();
-
-                ingredientArray.forEach(featureStructure -> ingredients.add((Ingredient) featureStructure));
-
-                ingredients.forEach(ingredient -> strengths.stream()
-                        .filter(strength ->
-                                strength.getBegin() > ingredient.getEnd())
-                        .min(Comparator.comparingInt(MedAttr::getBegin))
-                        .ifPresent(closestStrength -> {
-                            Matcher matcher = digitsWithComma.matcher(closestStrength.getCoveredText());
-
-                            if (matcher.find()) {
-                                ingredient.setAmountValue(Double
-                                        .parseDouble(matcher.group(0)
-                                                .replaceAll(",", "")));
-                                ingredient.setAmountUnit(matcher.replaceFirst("").trim());
-                            }
-                        }));
-            } else {
-                // if there are no ingredients (only brand), create a placeholder for each strength
-                FSArray newIngredientArray = new FSArray(jcas, strengths.size());
-
-                IntStream.range(0, strengths.size()).forEach(index -> {
-
-                    MedAttr strength = strengths.get(index);
-                    Ingredient newIngredient = new Ingredient(jcas);
-                    Matcher matcher = digitsWithComma.matcher(strength.getCoveredText());
-
-                    if (matcher.find()) {
-                        newIngredient.setAmountValue(Double
-                                .parseDouble(matcher.group(0)
-                                        .replaceAll(",", "")));
-                        newIngredient.setAmountUnit(matcher.replaceFirst("").trim());
-
-                        newIngredientArray.set(index, newIngredient);
+            if (attributeArray != null) {
+                attributeArray.forEach(featureStructure -> {
+                    MedAttr attribute = (MedAttr) featureStructure;
+                    if (FhirQueryUtils.MedAttrConstants.STRENGTH.contentEquals(attribute.getTag())) {
+                        strengths.add(attribute);
                     }
                 });
+            }
 
-                drug.setIngredients(newIngredientArray);
+            if (strengths.size() > 0) {
+
+                FSArray ingredientArray = drug.getIngredients();
+
+                if (ingredientArray != null && ingredientArray.size() > 0) {
+                    // for each ingredient, add the closest strength
+                    List<Ingredient> ingredients = new ArrayList<>();
+
+                    ingredientArray.forEach(featureStructure -> ingredients.add((Ingredient) featureStructure));
+
+                    ingredients.forEach(ingredient -> strengths.stream()
+                            .filter(strength ->
+                                    strength.getBegin() > ingredient.getEnd())
+                            .min(Comparator.comparingInt(MedAttr::getBegin))
+                            .ifPresent(closestStrength -> {
+                                Matcher matcher = digitsWithComma.matcher(closestStrength.getCoveredText());
+
+                                if (matcher.find()) {
+                                    ingredient.setAmountValue(Double
+                                            .parseDouble(matcher.group(0)
+                                                    .replaceAll(",", "")));
+                                    ingredient.setAmountUnit(matcher.replaceFirst("").trim());
+                                }
+                            }));
+                } else {
+                    // if there are no ingredients (only brand), create a placeholder for each strength
+                    FSArray newIngredientArray = new FSArray(jcas, strengths.size());
+
+                    IntStream.range(0, strengths.size()).forEach(index -> {
+
+                        MedAttr strength = strengths.get(index);
+                        Ingredient newIngredient = new Ingredient(jcas);
+                        Matcher matcher = digitsWithComma.matcher(strength.getCoveredText());
+
+                        if (matcher.find()) {
+                            newIngredient.setAmountValue(Double
+                                    .parseDouble(matcher.group(0)
+                                            .replaceAll(",", "")));
+                            newIngredient.setAmountUnit(matcher.replaceFirst("").trim());
+
+                            newIngredientArray.set(index, newIngredient);
+                        }
+                    });
+
+                    drug.setIngredients(newIngredientArray);
+                }
             }
         });
     }
