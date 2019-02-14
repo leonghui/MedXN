@@ -35,6 +35,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.apache.uima.util.Level;
 import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -65,17 +66,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     @SuppressWarnings("UnstableApiUsage")
     private void convertConceptMentions(JCas jcas) {
-        List<ConceptMention> conceptMentions = new ArrayList<>();
-        jcas.getAnnotationIndex(ConceptMention.type).forEach(annotation -> {
-            ConceptMention conceptMention = (ConceptMention) annotation;
-            conceptMentions.add(conceptMention);
-        });
+        ImmutableList<ConceptMention> conceptMentions = ImmutableList.copyOf(jcas.getAnnotationIndex(ConceptMention.type));
 
-        List<MedAttr> attributes = new ArrayList<>();
-        jcas.getAnnotationIndex(MedAttr.type).forEach(annotation -> {
-            MedAttr attribute = (MedAttr) annotation;
-            attributes.add(attribute);
-        });
+        ImmutableList<MedAttr> attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
 
         List<Drug> drugs = new ArrayList<>();
 
@@ -111,26 +104,15 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     @SuppressWarnings("UnstableApiUsage")
     private void createLookupWindows(JCas jcas) {
-        List<Sentence> sentences = new ArrayList<>();
-        jcas.getAnnotationIndex(Sentence.type).forEach(annotation -> {
-            Sentence sentence = (Sentence) annotation;
-            sentences.add(sentence);
-        });
+        ImmutableList<Sentence> sortedSentences = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd),
+                jcas.getAnnotationIndex(Sentence.type)
+        );
 
-        // TODO switch to ImmutableList.sortedCopyOf
-        ImmutableList<Sentence> sortedSentences = sentences.stream()
-                .sorted(Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd))
-                .collect(ImmutableList.toImmutableList());
-
-        List<Drug> drugs = new ArrayList<>();
-        jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
-            Drug drug = (Drug) annotation;
-            drugs.add(drug);
-        });
-
-        ImmutableList<Drug> sortedDrugs = drugs.stream()
-                .sorted(Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd))
-                .collect(ImmutableList.toImmutableList());
+        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                jcas.getAnnotationIndex(Drug.type)
+        );
 
         IntStream.range(0, sortedSentences.size()).forEach(sentenceIndex -> {
             Sentence sentence = sortedSentences.get(sentenceIndex);
@@ -146,6 +128,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                     window.setBegin(drug.getBegin());
 
+                    // TODO consider last attribute
                     // if we have not reached the last drug or last sentence
                     if (drugIndex < sortedDrugs.size() - 1 && sentenceIndex < sortedSentences.size() - 1) {
                         Drug nextDrug = sortedDrugs.get(drugIndex + 1);
@@ -169,23 +152,16 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     private void associateAttributesAndIngredients(JCas jcas) {
 
-        // TODO switch to ImmutableList.copyOf
-        List<MedAttr> attributes = new ArrayList<>();
-        jcas.getAnnotationIndex(MedAttr.type).forEach(annotation -> {
-            MedAttr attribute = (MedAttr) annotation;
-            attributes.add(attribute);
-        });
+        ImmutableList<MedAttr> attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
 
-        List<Ingredient> ingredients = new ArrayList<>();
-        jcas.getAnnotationIndex(Ingredient.type).forEach(annotation -> {
-            Ingredient ingredient = (Ingredient) annotation;
-            ingredients.add(ingredient);
-        });
+        ImmutableList<Ingredient> ingredients = ImmutableList.copyOf(jcas.getAnnotationIndex(Ingredient.type));
 
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
                 jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
+
                     Drug drug = (Drug) annotation;
 
+                    // attributes are assumed not to be contained in drug names
                     List<MedAttr> filteredAttributes = attributes.stream()
                             .filter(attribute ->
                                     attribute.getBegin() >= window.getBegin() &&
@@ -201,9 +177,15 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                     drug.setAttrs(attributesArray);
 
+                    getContext().getLogger().log(Level.INFO, "Associating attributes: " +
+                            FhirQueryUtils.getCoveredTextFromAnnotations(filteredAttributes) +
+                            " with drug: " + drug.getCoveredText()
+                    );
+
+                    // ingredients are assumed to be contained in drug names
                     List<Ingredient> filteredIngredients = ingredients.stream()
                             .filter(ingredient ->
-                                    ingredient.getBegin() >= window.getBegin() &&
+                                    ingredient.getBegin() >= drug.getBegin() &&
                                             ingredient.getEnd() <= window.getEnd())
                             .collect(Collectors.toList());
 
@@ -215,6 +197,11 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                             );
 
                     drug.setIngredients(ingredientArray);
+
+                    getContext().getLogger().log(Level.INFO, "Associating ingredients: " +
+                            FhirQueryUtils.getCoveredTextFromAnnotations(filteredIngredients) +
+                            " with drug: " + drug.getCoveredText()
+                    );
 
                 })
         );
