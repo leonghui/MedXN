@@ -115,8 +115,6 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                             .replaceAll(punctuationOrWhitespace.toString(), " ");
 
                     List<Drug> drugsFound = new ArrayList<>();
-                    List<ConceptMention> conceptsFound = new ArrayList<>();
-                    List<Ingredient> ingredientsFound = new ArrayList<>();
 
                     // create Drug for each brand found
                     brands.trie.parseText(sentText).forEach(emit -> {
@@ -124,10 +122,14 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         int end = sentence.getBegin() + emit.getEnd() + 1;
 
                         Drug drug = new Drug(jcas, begin, end);
+                        drug.setBrand(FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()).toString());
                         drugsFound.add(drug);
 
                         getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
                     });
+
+                    List<ConceptMention> conceptsFound = new ArrayList<>();
+                    List<Ingredient> ingredientsFound = new ArrayList<>();
 
                     // create ConceptMention and Ingredient for each ingredient found
                     ingredients.trie.parseText(sentText).forEach(emit -> {
