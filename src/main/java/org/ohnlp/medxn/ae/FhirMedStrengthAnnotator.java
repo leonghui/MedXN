@@ -25,9 +25,11 @@ import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
+import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -43,66 +45,72 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
     @SuppressWarnings("UnstableApiUsage")
     @Override
     public void process(JCas jcas) {
-        jcas.getAnnotationIndex(Drug.type).forEach(annotation -> {
-            Drug drug = (Drug) annotation;
+        jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
+                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
+                    Drug drug = (Drug) annotation;
 
-            if (drug.getAttrs() != null) {
+                    if (drug.getAttrs() != null) {
 
-                ImmutableList<MedAttr> strengths = ImmutableList.copyOf(drug.getAttrs()).stream()
-                        .map(featureStructure -> (MedAttr) featureStructure)
-                        .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH))
-                        .collect(ImmutableList.toImmutableList());
-
-                // TODO iterate by strength and look backward for closest ingredient
-                if (strengths.size() > 0) {
-
-                    if (drug.getIngredients() != null) {
-
-                        ImmutableList<Ingredient> ingredients = ImmutableList.copyOf(drug.getIngredients()).stream()
-                                .map(featureStructure -> (Ingredient) featureStructure)
+                        ImmutableList<MedAttr> strengths = ImmutableList.copyOf(drug.getAttrs()).stream()
+                                .map(featureStructure -> (MedAttr) featureStructure)
+                                .filter(attribute ->
+                                        attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH))
                                 .collect(ImmutableList.toImmutableList());
-
-                        if (ingredients.size() > 0) {
-                            // for each ingredient, add the closest strength
-                            ingredients.forEach(ingredient -> strengths.stream()
-                                    .filter(strength ->
-                                            strength.getBegin() > ingredient.getEnd())
-                                    .min(Comparator.comparingInt(MedAttr::getBegin))
-                                    .ifPresent(closestStrength -> {
-                                        Matcher matcher = digitsWithComma.matcher(closestStrength.getCoveredText());
-
-                                        if (matcher.find()) {
-                                            ingredient.setAmountValue(Double
-                                                    .parseDouble(matcher.group(0)
-                                                            .replaceAll(",", "")));
-                                            ingredient.setAmountUnit(matcher.replaceFirst("").trim());
-                                        }
-                                    }));
-                        }
-                    } else {
-                        // if there are no ingredients (only brand), create a placeholder for each strength
-                        FSArray newIngredientArray = new FSArray(jcas, strengths.size());
 
                         IntStream.range(0, strengths.size()).forEach(index -> {
 
                             MedAttr strength = strengths.get(index);
-                            Ingredient newIngredient = new Ingredient(jcas);
+
                             Matcher matcher = digitsWithComma.matcher(strength.getCoveredText());
 
                             if (matcher.find()) {
-                                newIngredient.setAmountValue(Double
-                                        .parseDouble(matcher.group(0)
-                                                .replaceAll(",", "")));
-                                newIngredient.setAmountUnit(matcher.replaceFirst("").trim());
 
-                                newIngredientArray.set(index, newIngredient);
+                                double value = Double.parseDouble(matcher.group(0).replaceAll(",", ""));
+                                String unit = matcher.replaceFirst("").trim();
+
+                                // if there are no ingredients, create a new array of size 1 to hold the strength
+                                // resize the array if there are additional strengths later
+                                if (drug.getIngredients() == null) {
+                                    FSArray newIngredientArray = new FSArray(jcas, 1);
+                                    Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
+
+                                    newIngredient.setAmountValue(value);
+                                    newIngredient.setAmountUnit(unit);
+                                    newIngredientArray.set(0, newIngredient);
+
+                                    drug.setIngredients(newIngredientArray);
+
+                                } else {
+                                    // look backward and assign strength to the closest ingredient
+                                    Optional<Ingredient> closestIngredient = ImmutableList.copyOf(drug.getIngredients())
+                                            .stream()
+                                            .map(featureStructure -> (Ingredient) featureStructure)
+                                            .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
+                                                    && (ingredient.getAmountUnit() == null ||
+                                                    ingredient.getAmountValue() == 0.0))
+                                            .max(Comparator.comparingInt(Ingredient::getEnd));
+
+                                    if (closestIngredient.isPresent()) {
+                                        closestIngredient.get().setAmountValue(value);
+                                        closestIngredient.get().setAmountUnit(unit);
+                                    } else {
+                                        Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
+                                        newIngredient.setAmountValue(value);
+                                        newIngredient.setAmountUnit(unit);
+
+                                        int arraySize = drug.getIngredients().size();
+
+                                        // resize internal array
+                                        FSArray newArray = new FSArray(jcas, arraySize + 1);
+                                        newArray.copyFromArray(drug.getIngredients().toArray(), 0, 0, arraySize);
+                                        newArray.set(arraySize, newIngredient);
+
+                                        drug.setIngredients(newArray);
+                                    }
+                                }
                             }
                         });
-
-                        drug.setIngredients(newIngredientArray);
                     }
-                }
-            }
-        });
+                }));
     }
 }
