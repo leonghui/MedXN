@@ -102,7 +102,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         drugs.forEach(TOP::addToIndexes);
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     private void createLookupWindows(JCas jcas) {
         ImmutableList<Sentence> sortedSentences = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd),
@@ -193,7 +192,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                     IntStream.range(0, filteredIngredients.size())
                             .forEach(index ->
-                                    filteredIngredients.set(index, filteredIngredients.get(index))
+                                    ingredientArray.set(index, filteredIngredients.get(index))
                             );
 
                     drug.setIngredients(ingredientArray);
@@ -202,7 +201,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                             FhirQueryUtils.getCoveredTextFromAnnotations(filteredIngredients) +
                             " with drug: " + drug.getCoveredText()
                     );
-
                 })
         );
     }
