@@ -55,7 +55,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private ImmutableList<MedAttr> attributes;
     private ImmutableList<Ingredient> ingredients;
     private ImmutableList<Sentence> sortedSentences;
-    private ImmutableList<Drug> sortedDrugs;
     private ImmutableList<MedAttr> formsRoutesFrequencies;
 
     @Override
@@ -72,10 +71,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         sortedSentences = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd),
                 jcas.getAnnotationIndex(Sentence.type)
-        );
-        sortedDrugs = ImmutableList.sortedCopyOf(
-                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
-                jcas.getAnnotationIndex(Drug.type)
         );
         formsRoutesFrequencies = attributes.stream()
                 .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.FORM)
@@ -116,6 +111,13 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     private void createLookupWindows(JCas jcas) {
+        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                jcas.getAnnotationIndex(Drug.type)
+        );
+
+        List<LookupWindow> windows = new ArrayList<>();
+
         IntStream.range(0, sortedSentences.size()).forEach(sentenceIndex -> {
             Sentence sentence = sortedSentences.get(sentenceIndex);
 
@@ -130,35 +132,21 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                     window.setBegin(drug.getBegin());
 
-                    // TODO consider last attribute
-                    // if there is only 1 sentence
-                    if (sortedSentences.size() == 1) {
-                        if (drugIndex < sortedDrugs.size() - 1) {
-                            Drug nextDrug = sortedDrugs.get(drugIndex + 1);
-                            window.setEnd(nextDrug.getBegin() - 1);
-                        } else {
-                            window.setEnd(sentence.getEnd());
-                        }
+                    int nextDrugBegin = drugIndex < sortedDrugs.size() - 1 ?
+                            sortedDrugs.get(drugIndex + 1).getBegin() : Integer.MAX_VALUE;
 
-                        // if we have not reached the last drug or last sentence
-                    } else if (drugIndex < sortedDrugs.size() - 1 && sentenceIndex < sortedSentences.size() - 1) {
-                        Drug nextDrug = sortedDrugs.get(drugIndex + 1);
-                        Sentence nextSentence = sortedSentences.get(sentenceIndex + 1);
+                    int nextSentenceEnd = sentenceIndex < sortedSentences.size() - 1 ?
+                            sortedSentences.get(sentenceIndex + 1).getEnd() : sentence.getEnd();
 
-                        // end the drug in the next sentence if the next drug begins in further sentences
-                        if (nextDrug.getBegin() > nextSentence.getEnd()) {
-                            window.setEnd(nextSentence.getEnd());
-                        } else {
-                            window.setEnd(nextDrug.getBegin() - 1);
-                        }
-                    } else {
-                        window.setEnd(sentence.getEnd());
-                    }
+                    int windowEnd = nextDrugBegin < nextSentenceEnd ? nextDrugBegin : nextSentenceEnd;
 
-                    window.addToIndexes();
+                    window.setEnd(windowEnd);
+
+                    windows.add(window);
                 }
             });
         });
+        windows.forEach(TOP::addToIndexes);
     }
 
     private void associateAttributesAndIngredients(JCas jcas) {
@@ -195,19 +183,22 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                                             ingredient.getEnd() <= window.getEnd())
                             .collect(Collectors.toList());
 
-                    FSArray ingredientArray = new FSArray(jcas, filteredIngredients.size());
+                    if (filteredIngredients.size() > 0) {
 
-                    IntStream.range(0, filteredIngredients.size())
-                            .forEach(index ->
-                                    ingredientArray.set(index, filteredIngredients.get(index))
-                            );
+                        FSArray ingredientArray = new FSArray(jcas, filteredIngredients.size());
 
-                    drug.setIngredients(ingredientArray);
+                        IntStream.range(0, filteredIngredients.size())
+                                .forEach(index ->
+                                        ingredientArray.set(index, filteredIngredients.get(index))
+                                );
 
-                    getContext().getLogger().log(Level.INFO, "Associating ingredients: " +
-                            FhirQueryUtils.getCoveredTextFromAnnotations(filteredIngredients) +
-                            " with drug: " + drug.getCoveredText()
-                    );
+                        drug.setIngredients(ingredientArray);
+
+                        getContext().getLogger().log(Level.INFO, "Associating ingredients: " +
+                                FhirQueryUtils.getCoveredTextFromAnnotations(filteredIngredients) +
+                                " with drug: " + drug.getCoveredText()
+                        );
+                    }
                 })
         );
     }
