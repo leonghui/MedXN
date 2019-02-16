@@ -144,6 +144,13 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         ingredientsFound.add(ingredient);
 
                         ConceptMention conceptMention = new ConceptMention(jcas, begin, end);
+
+                        String ingredientTerm = ingredients.keywordMap.get(rxCui)
+                                .stream().findFirst().orElse("");
+
+                        conceptMention.setNormTarget(ingredientTerm);
+                        conceptMention.setSemGroup(rxCui + "::IN");
+                        conceptMention.setSentence((Sentence) sentence);
                         conceptsFound.add(conceptMention);
                     });
 
