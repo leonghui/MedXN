@@ -177,39 +177,14 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 jcas.getAnnotationIndex(Drug.type)
         );
 
-        // SCENARIO 1: Brand name is followed by ingredient name
         IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
             Drug drug = sortedDrugs.get(drugIndex);
 
+            // SCENARIO 1: Brand name is followed by ingredient name
             if (drug.getBrand() != null && drugIndex + 1 < sortedDrugs.size()) {
                 Drug nextDrug = sortedDrugs.get(drugIndex + 1);
 
-                if (nextDrug.getBrand() == null) {
-                    ImmutableList<String> rxCuis = ImmutableList.copyOf(drug.getBrand().split(","));
-
-                    Set<Medication> brandedMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
-
-                    ImmutableList<String> productIngredients = ImmutableList
-                            .copyOf(FhirQueryUtils.getIngredientsFromMedications(brandedMedications));
-
-                    if (nextDrug.getIngredients() != null) {
-                        ImmutableList<String> genericIngredients = ImmutableList
-                                .copyOf(nextDrug.getIngredients())
-                                .stream()
-                                .map(featureStructure -> (Ingredient) featureStructure)
-                                .map(Ingredient::getItem)
-                                .collect(ImmutableList.toImmutableList());
-
-                        if (productIngredients.containsAll(genericIngredients)) {
-                            mergeDrugs(jcas, nextDrug, drug);
-
-                            getContext().getLogger().log(Level.INFO, "Merged drug: " +
-                                    nextDrug.getCoveredText() +
-                                    " with drug: " + drug.getCoveredText()
-                            );
-                        }
-                    }
-                }
+                compareIngredientsAndMergeDrugs(jcas, nextDrug, drug);
             }
         });
     }
@@ -284,6 +259,35 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                             }
                         })
         );
+    }
+
+    private void compareIngredientsAndMergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
+        if (sourceDrug.getBrand() == null) {
+            ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
+
+            Set<Medication> brandedMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
+
+            ImmutableList<String> productIngredients = ImmutableList
+                    .copyOf(FhirQueryUtils.getIngredientsFromMedications(brandedMedications));
+
+            if (sourceDrug.getIngredients() != null) {
+                ImmutableList<String> genericIngredients = ImmutableList
+                        .copyOf(sourceDrug.getIngredients())
+                        .stream()
+                        .map(featureStructure -> (Ingredient) featureStructure)
+                        .map(Ingredient::getItem)
+                        .collect(ImmutableList.toImmutableList());
+
+                if (productIngredients.containsAll(genericIngredients)) {
+                    mergeDrugs(jcas, sourceDrug, targetDrug);
+
+                    getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                            sourceDrug.getCoveredText() +
+                            " with drug: " + targetDrug.getCoveredText()
+                    );
+                }
+            }
+        }
     }
 
     @SuppressWarnings("UnstableApiUsage")
