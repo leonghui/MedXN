@@ -185,12 +185,13 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                                             attribute.getEnd() <= window.getEnd())
                             .collect(Collectors.toList());
 
-                    FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
+                            if (filteredAttributes.size() > 0) {
+                                FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
 
-                    IntStream.range(0, filteredAttributes.size())
-                            .forEach(index ->
-                                    attributesArray.set(index, filteredAttributes.get(index))
-                            );
+                                IntStream.range(0, filteredAttributes.size())
+                                        .forEach(index ->
+                                                attributesArray.set(index, filteredAttributes.get(index))
+                                        );
 
                     drug.setAttrs(attributesArray);
 
