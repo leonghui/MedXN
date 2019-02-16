@@ -191,19 +191,19 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     );
 
                     drugsModified.set(compareIngredientsAndMergeDrugs(jcas, nextDrug, drug));
-                } else
 
                     // SCENARIO 2: Ingredient name is followed by brand name
-                    if (drug.getBrand() != null && drugIndex > 0) {
-                        Drug prevDrug = sortedDrugs.get(drugIndex - 1);
+                } else if (drug.getBrand() != null && drugIndex > 0) {
 
-                        getContext().getLogger().log(Level.INFO, "Looking backward: " +
-                                prevDrug.getCoveredText() +
-                                " with drug: " + drug.getCoveredText()
-                        );
+                    Drug prevDrug = sortedDrugs.get(drugIndex - 1);
 
-                        drugsModified.set(compareIngredientsAndMergeDrugs(jcas, prevDrug, drug));
-                    }
+                    getContext().getLogger().log(Level.INFO, "Looking backward: " +
+                            prevDrug.getCoveredText() +
+                            " with drug: " + drug.getCoveredText()
+                    );
+
+                    drugsModified.set(compareIngredientsAndMergeDrugs(jcas, prevDrug, drug));
+                }
             });
         } while (drugsModified.get());
 
@@ -267,7 +267,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                         attributesArray.copyFromArray(
                                 filteredAttributes.toArray(
-                                        new FeatureStructure[0]),0,0,filteredAttributes.size());
+                                        new FeatureStructure[0]), 0, 0, filteredAttributes.size());
 
                         drug.setAttrs(attributesArray);
 
@@ -336,6 +336,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             mergedAttributes = Stream.concat(
                     Streams.stream(sourceDrug.getAttrs()),
                     Streams.stream(targetDrug.getAttrs()))
+                    .map(MedAttr.class::cast)
+                    .sorted(Comparator.comparingInt(MedAttr::getBegin))
                     .collect(ImmutableSet.toImmutableSet());
         } else if (sourceDrug.getAttrs() != null) {
             mergedAttributes = Streams.stream(sourceDrug.getAttrs())
@@ -360,6 +362,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             mergedIngredients = Stream.concat(
                     Streams.stream(sourceDrug.getIngredients()),
                     Streams.stream(targetDrug.getIngredients()))
+                    .map(Ingredient.class::cast)
+                    .sorted(Comparator.comparingInt(Ingredient::getBegin))
                     .collect(ImmutableSet.toImmutableSet());
         } else if (sourceDrug.getIngredients() != null) {
             mergedIngredients = Streams.stream(sourceDrug.getIngredients())
