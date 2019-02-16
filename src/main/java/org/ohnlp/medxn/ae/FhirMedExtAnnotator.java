@@ -169,24 +169,47 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         drugs.forEach(TOP::addToIndexes);
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     private void mergeBrandAndGenerics(JCas jcas) {
-        // always generate a new instance of drug list because the index has been updated
-        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
-                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
-                jcas.getAnnotationIndex(Drug.type)
-        );
 
-        IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
-            Drug drug = sortedDrugs.get(drugIndex);
+        AtomicBoolean drugsModified = new AtomicBoolean(false);
 
-            // SCENARIO 1: Brand name is followed by ingredient name
-            if (drug.getBrand() != null && drugIndex + 1 < sortedDrugs.size()) {
-                Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+        do {
+            drugsModified.set(false);
+            // always generate a new instance of drug list because the index has been updated
+            ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+                    Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                    jcas.getAnnotationIndex(Drug.type)
+            );
 
-                compareIngredientsAndMergeDrugs(jcas, nextDrug, drug);
-            }
-        });
+            IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
+                Drug drug = sortedDrugs.get(drugIndex);
+
+                // SCENARIO 1: Brand name is followed by ingredient name
+                if (drug.getBrand() != null && drugIndex + 1 < sortedDrugs.size()) {
+                    Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+
+                    getContext().getLogger().log(Level.INFO, "Looking ahead: " +
+                            nextDrug.getCoveredText() +
+                            " with drug: " + drug.getCoveredText()
+                    );
+
+                    drugsModified.set(compareIngredientsAndMergeDrugs(jcas, nextDrug, drug));
+                } else
+
+                    // SCENARIO 2: Ingredient name is followed by brand name
+                    if (drug.getBrand() != null && drugIndex > 0) {
+                        Drug prevDrug = sortedDrugs.get(drugIndex - 1);
+
+                        getContext().getLogger().log(Level.INFO, "Looking backward: " +
+                                prevDrug.getCoveredText() +
+                                " with drug: " + drug.getCoveredText()
+                        );
+
+                        drugsModified.set(compareIngredientsAndMergeDrugs(jcas, prevDrug, drug));
+                    }
+            });
+        } while (drugsModified.get());
+
     }
 
     private void createLookupWindows(JCas jcas) {
@@ -261,7 +284,10 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         );
     }
 
-    private void compareIngredientsAndMergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
+    @SuppressWarnings("UnstableApiUsage")
+    private boolean compareIngredientsAndMergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
+        boolean drugsMerged = false;
+
         if (sourceDrug.getBrand() == null) {
             ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
 
