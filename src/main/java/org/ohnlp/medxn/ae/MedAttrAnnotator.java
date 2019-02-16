@@ -185,8 +185,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 
 			String sanitizedText = text
 					.replaceAll("\\s+", " ") // replace all whitespace characters with a space
-					.replaceAll("(\\p{Punct})", " ") // replace all punctuations with a space
-					.trim(); // remove leading and trailing whitespace
+					.replaceAll("(\\p{Punct})", " "); // replace all punctuations with a space
 
 			trie.parseText(sanitizedText).forEach(emit -> {
 				Attribute attr = new Attribute();
