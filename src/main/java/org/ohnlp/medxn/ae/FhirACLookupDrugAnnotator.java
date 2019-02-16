@@ -122,7 +122,9 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         int end = sentence.getBegin() + emit.getEnd() + 1;
 
                         Drug drug = new Drug(jcas, begin, end);
-                        drug.setBrand(FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()).toString());
+                        String brand = String.join(",",
+                                FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()));
+                        drug.setBrand(brand);
                         drugsFound.add(drug);
 
                         getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());

@@ -27,6 +27,7 @@
 package org.ohnlp.medxn.ae;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.apache.uima.UimaContext;
@@ -37,7 +38,9 @@ import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
+import org.hl7.fhir.dstu3.model.Medication;
 import org.ohnlp.medtagger.type.ConceptMention;
+import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
@@ -48,19 +51,32 @@ import org.ohnlp.typesystem.type.textspan.Sentence;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
+
+    private FhirQueryClient queryClient;
+
     private ImmutableList<ConceptMention> concepts;
     private ImmutableList<MedAttr> attributes;
     private ImmutableList<Ingredient> ingredients;
     private ImmutableList<Sentence> sortedSentences;
     private ImmutableList<MedAttr> formsRoutesFrequencies;
+    private List<Medication> allMedications;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
         super.initialize(uimaContext);
+
+        // Get config parameter values
+        String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
+        int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
+        queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+
+        allMedications = queryClient.getAllMedications();
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -82,16 +98,16 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableList.toImmutableList());
 
         convertConceptMentions(jcas);
+        mergeBrandAndGenerics(jcas);
         createLookupWindows(jcas);
         associateAttributesAndIngredients(jcas);
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     private void convertConceptMentions(JCas jcas) {
         List<Drug> drugs = new ArrayList<>();
 
-        // TODO merge concepts and brands
-
-        // SCENARIO 1: if ingredients are ordered with form or route or frequency towards the end (terminator)
+        // SCENARIO 1: ingredients are ordered with form or route or frequency towards the end (terminator)
         SetMultimap<MedAttr, ConceptMention> conceptsByClosestTerminator = LinkedHashMultimap.create();
 
         concepts.forEach(concept -> formsRoutesFrequencies.stream()
@@ -129,7 +145,70 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             }
         });
 
+        drugs.forEach(drug -> {
+           ImmutableList<Ingredient> overlappingIngredients = ingredients.stream()
+           .filter(ingredient ->
+                   ingredient.getBegin() >= drug.getBegin() &&
+                   ingredient.getEnd() <= drug.getEnd())
+                   .collect(ImmutableList.toImmutableList());
+
+           if (overlappingIngredients.size() > 0) {
+               FSArray ingredients = new FSArray(jcas, overlappingIngredients.size());
+
+               ingredients.copyFromArray(
+                       overlappingIngredients.toArray(
+                               new Ingredient[0]), 0,0, overlappingIngredients.size());
+
+               drug.setIngredients(ingredients);
+           }
+        });
+
         drugs.forEach(TOP::addToIndexes);
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private void mergeBrandAndGenerics(JCas jcas) {
+        // always generate a new instance of drug list because the index has been updated
+        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                jcas.getAnnotationIndex(Drug.type)
+        );
+
+        // SCENARIO 1: Brand name is followed by ingredient name
+        IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
+            Drug drug = sortedDrugs.get(drugIndex);
+
+            if (drug.getBrand() != null) {
+                Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+
+                if (nextDrug.getBrand() == null) {
+                    ImmutableList<String> rxCuis = ImmutableList.copyOf(drug.getBrand().split(","));
+
+                    Set<Medication> brandedMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
+
+                    ImmutableList<String> productIngredients = ImmutableList
+                            .copyOf(FhirQueryUtils.getIngredientsFromMedications(brandedMedications));
+
+                    if (nextDrug.getIngredients() != null) {
+                        ImmutableList<String> genericIngredients = ImmutableList
+                                .copyOf(nextDrug.getIngredients())
+                                .stream()
+                                .map(featureStructure -> (Ingredient) featureStructure)
+                                .map(Ingredient::getItem)
+                                .collect(ImmutableList.toImmutableList());
+
+                        if (productIngredients.containsAll(genericIngredients)) {
+                            mergeDrugs(jcas, nextDrug, drug);
+
+                            getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                                    nextDrug.getCoveredText() +
+                                    " with drug: " + drug.getCoveredText()
+                            );
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private void createLookupWindows(JCas jcas) {
@@ -174,16 +253,16 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     private void associateAttributesAndIngredients(JCas jcas) {
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
-                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
+                        jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
 
-                    Drug drug = (Drug) annotation;
+                            Drug drug = (Drug) annotation;
 
-                    // attributes are assumed not to be contained in drug names
-                    List<MedAttr> filteredAttributes = attributes.stream()
-                            .filter(attribute ->
-                                    attribute.getBegin() >= window.getBegin() &&
-                                            attribute.getEnd() <= window.getEnd())
-                            .collect(Collectors.toList());
+                            // attributes are assumed not to be contained in drug names
+                            List<MedAttr> filteredAttributes = attributes.stream()
+                                    .filter(attribute ->
+                                            attribute.getBegin() >= window.getBegin() &&
+                                                    attribute.getEnd() <= window.getEnd())
+                                    .collect(Collectors.toList());
 
                             if (filteredAttributes.size() > 0) {
                                 FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
@@ -193,37 +272,86 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                                                 attributesArray.set(index, filteredAttributes.get(index))
                                         );
 
-                    drug.setAttrs(attributesArray);
+                                drug.setAttrs(attributesArray);
 
-                    getContext().getLogger().log(Level.INFO, "Associating attributes: " +
-                            FhirQueryUtils.getCoveredTextFromAnnotations(filteredAttributes) +
-                            " with drug: " + drug.getCoveredText()
-                    );
-
-                    // ingredients are assumed to be contained in drug names
-                    List<Ingredient> filteredIngredients = ingredients.stream()
-                            .filter(ingredient ->
-                                    ingredient.getBegin() >= drug.getBegin() &&
-                                            ingredient.getEnd() <= window.getEnd())
-                            .collect(Collectors.toList());
-
-                    if (filteredIngredients.size() > 0) {
-
-                        FSArray ingredientArray = new FSArray(jcas, filteredIngredients.size());
-
-                        IntStream.range(0, filteredIngredients.size())
-                                .forEach(index ->
-                                        ingredientArray.set(index, filteredIngredients.get(index))
+                                getContext().getLogger().log(Level.INFO, "Associating attributes: " +
+                                        FhirQueryUtils.getCoveredTextFromAnnotations(filteredAttributes) +
+                                        " with drug: " + drug.getCoveredText()
                                 );
-
-                        drug.setIngredients(ingredientArray);
-
-                        getContext().getLogger().log(Level.INFO, "Associating ingredients: " +
-                                FhirQueryUtils.getCoveredTextFromAnnotations(filteredIngredients) +
-                                " with drug: " + drug.getCoveredText()
-                        );
-                    }
-                })
+                            }
+                        })
         );
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private void mergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
+
+        // expand interval to cover both drugs
+        int begin = sourceDrug.getBegin() < targetDrug.getBegin() ? sourceDrug.getBegin() : targetDrug.getBegin();
+        int end = sourceDrug.getEnd() > targetDrug.getEnd() ? sourceDrug.getEnd() : targetDrug.getEnd();
+
+        Drug mergedDrug = new Drug(jcas, begin, end);
+
+        // prefer attributes from source drug
+        String form = sourceDrug.getForm() != null ? sourceDrug.getForm() : targetDrug.getForm();
+        String brand = sourceDrug.getBrand() != null ? sourceDrug.getBrand() : targetDrug.getBrand();
+
+        mergedDrug.setForm(form);
+        mergedDrug.setBrand(brand);
+
+        ImmutableSet<FeatureStructure> mergedAttributes = null;
+
+        if (sourceDrug.getAttrs() != null && targetDrug.getAttrs() != null) {
+            mergedAttributes = Stream.of(
+                    ImmutableList.copyOf(sourceDrug.getAttrs()),
+                    ImmutableList.copyOf(targetDrug.getAttrs()))
+                    .flatMap(ImmutableList::stream)
+                    .collect(ImmutableSet.toImmutableSet());
+        } else if (sourceDrug.getAttrs() != null) {
+            mergedAttributes = ImmutableList.copyOf(sourceDrug.getAttrs()).stream()
+                    .collect(ImmutableSet.toImmutableSet());
+        } else if (targetDrug.getAttrs() != null) {
+            mergedAttributes = ImmutableList.copyOf(targetDrug.getAttrs()).stream()
+                    .collect(ImmutableSet.toImmutableSet());
+        }
+
+        if (mergedAttributes != null && mergedAttributes.size() > 0) {
+            FSArray medAttrs = new FSArray(jcas, mergedAttributes.size());
+
+            medAttrs.copyFromArray(mergedAttributes
+                    .toArray(new FeatureStructure[0]), 0, 0, mergedAttributes.size());
+
+            mergedDrug.setAttrs(medAttrs);
+        }
+
+        ImmutableSet<FeatureStructure> mergedIngredients = null;
+
+        if (sourceDrug.getIngredients() != null && targetDrug.getIngredients() != null) {
+            mergedIngredients = Stream.of(
+                    ImmutableList.copyOf(sourceDrug.getIngredients()),
+                    ImmutableList.copyOf(targetDrug.getIngredients()))
+                    .flatMap(ImmutableList::stream)
+                    .collect(ImmutableSet.toImmutableSet());
+        } else if (sourceDrug.getIngredients() != null) {
+            mergedIngredients = ImmutableList.copyOf(sourceDrug.getIngredients()).stream()
+                    .collect(ImmutableSet.toImmutableSet());
+        } else if (targetDrug.getIngredients() != null) {
+            mergedIngredients = ImmutableList.copyOf(targetDrug.getIngredients()).stream()
+                    .collect(ImmutableSet.toImmutableSet());
+        }
+
+        if (mergedIngredients != null && mergedIngredients.size() > 0) {
+            FSArray medIngredients = new FSArray(jcas, mergedIngredients.size());
+
+            medIngredients.copyFromArray(mergedIngredients
+                    .toArray(new FeatureStructure[0]), 0, 0, mergedIngredients.size());
+
+            mergedDrug.setIngredients(medIngredients);
+        }
+
+        sourceDrug.removeFromIndexes(jcas);
+        targetDrug.removeFromIndexes(jcas);
+        mergedDrug.addToIndexes(jcas);
+
     }
 }
