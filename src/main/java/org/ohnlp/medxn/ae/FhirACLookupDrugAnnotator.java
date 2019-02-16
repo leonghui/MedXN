@@ -30,11 +30,11 @@ import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Extension;
+import org.hl7.fhir.dstu3.model.Substance;
 import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
@@ -43,8 +43,6 @@ import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.typesystem.type.textspan.Segment;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 
 public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
@@ -65,10 +63,10 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient
                 .getAllSubstances()
-                .forEach(substance -> {
-                    Coding substanceCode = substance.getCode().getCodingFirstRep();
-                    ingredients.keywordMap.put(substanceCode.getCode(), substanceCode.getDisplay().toLowerCase());
-                });
+                .stream()
+                .map(Substance::getCode)
+                .map(CodeableConcept::getCodingFirstRep)
+                .forEach(coding -> ingredients.keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase()));
 
         ingredients.trie = Trie.builder()
                 .ignoreCase()
@@ -79,21 +77,18 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient
                 .getAllMedications()
-                .forEach(medication -> {
-                    Extension brandExtension = medication
-                            .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand")
-                            .stream()
-                            .findFirst()
-                            .orElse(null);
-                    Coding productCoding = medication.getCode().getCodingFirstRep();
+                .forEach(medication -> medication
+                        .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand")
+                        .stream()
+                        .findFirst()
+                        .ifPresent(brandExtension -> {
+                            Coding productCoding = medication.getCode().getCodingFirstRep();
 
-                    if (brandExtension != null) {
-                        brands.keywordMap.put(productCoding.getCode(),
-                                brandExtension.getValue().toString()
-                                        .replaceAll(punctuationOrWhitespace.toString(), " ")
-                        );
-                    }
-                });
+                            brands.keywordMap.put(productCoding.getCode(),
+                                    brandExtension.getValue().toString()
+                                            .replaceAll(punctuationOrWhitespace.toString(), " ")
+                            );
+                        }));
 
         brands.trie = Trie.builder()
                 .ignoreCase()
@@ -114,8 +109,6 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                             // replace single punctuations and whitespaces with a single space
                             .replaceAll(punctuationOrWhitespace.toString(), " ");
 
-                    List<Drug> drugsFound = new ArrayList<>();
-
                     // create Drug for each brand found
                     brands.trie.parseText(sentText).forEach(emit -> {
                         int begin = sentence.getBegin() + emit.getStart();
@@ -125,13 +118,10 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         String brand = String.join(",",
                                 FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()));
                         drug.setBrand(brand);
-                        drugsFound.add(drug);
+                        drug.addToIndexes(jcas);
 
                         getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
                     });
-
-                    List<ConceptMention> conceptsFound = new ArrayList<>();
-                    List<Ingredient> ingredientsFound = new ArrayList<>();
 
                     // create ConceptMention and Ingredient for each ingredient found
                     ingredients.trie.parseText(sentText).forEach(emit -> {
@@ -141,24 +131,18 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         Ingredient ingredient = new Ingredient(jcas, begin, end);
                         String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
                         ingredient.setItem(rxCui);
-                        ingredientsFound.add(ingredient);
+                        ingredient.addToIndexes(jcas);
 
-                        ConceptMention conceptMention = new ConceptMention(jcas, begin, end);
+                        ConceptMention concept = new ConceptMention(jcas, begin, end);
 
                         String ingredientTerm = ingredients.keywordMap.get(rxCui)
                                 .stream().findFirst().orElse("");
 
-                        conceptMention.setNormTarget(ingredientTerm);
-                        conceptMention.setSemGroup(rxCui + "::IN");
-                        conceptMention.setSentence((Sentence) sentence);
-                        conceptsFound.add(conceptMention);
+                        concept.setNormTarget(ingredientTerm);
+                        concept.setSemGroup(rxCui + "::IN");
+                        concept.setSentence((Sentence) sentence);
+                        concept.addToIndexes(jcas);
                     });
-
-                    // add all annotations to the index for further processing
-                    drugsFound.forEach(TOP::addToIndexes);
-                    ingredientsFound.forEach(TOP::addToIndexes);
-                    conceptsFound.forEach(TOP::addToIndexes);
-
                 })
         );
     }
