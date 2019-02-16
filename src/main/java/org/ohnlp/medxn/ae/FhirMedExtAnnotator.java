@@ -52,13 +52,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
-
-    private FhirQueryClient queryClient;
 
     private ImmutableList<ConceptMention> concepts;
     private ImmutableList<MedAttr> attributes;
@@ -74,7 +73,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         // Get config parameter values
         String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
-        queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         allMedications = queryClient.getAllMedications();
     }
@@ -131,7 +130,11 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         IntStream.range(0, concepts.size()).forEach(index -> {
             ConceptMention concept = concepts.get(index);
 
-            if (index + 1 < concepts.size()) {
+            // consider the last ingredient as a standalone drug
+            if (index + 1 == concepts.size()) {
+                Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
+                drugs.add(drug);
+            } else if (index + 1 < concepts.size()) {
                 ConceptMention nextConcept = concepts.get(index + 1);
 
                 boolean terminatorFound = formsRoutesFrequencies.stream().anyMatch(attribute ->
@@ -142,28 +145,25 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
                     drugs.add(drug);
                 }
-            } else if (concepts.size() == 1) {
-                Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
-                drugs.add(drug);
             }
         });
 
         drugs.forEach(drug -> {
-           ImmutableList<Ingredient> overlappingIngredients = ingredients.stream()
-           .filter(ingredient ->
-                   ingredient.getBegin() >= drug.getBegin() &&
-                   ingredient.getEnd() <= drug.getEnd())
-                   .collect(ImmutableList.toImmutableList());
+            ImmutableList<Ingredient> overlappingIngredients = ingredients.stream()
+                    .filter(ingredient ->
+                            ingredient.getBegin() >= drug.getBegin() &&
+                                    ingredient.getEnd() <= drug.getEnd())
+                    .collect(ImmutableList.toImmutableList());
 
-           if (overlappingIngredients.size() > 0) {
-               FSArray ingredients = new FSArray(jcas, overlappingIngredients.size());
+            if (overlappingIngredients.size() > 0) {
+                FSArray ingredients = new FSArray(jcas, overlappingIngredients.size());
 
-               ingredients.copyFromArray(
-                       overlappingIngredients.toArray(
-                               new Ingredient[0]), 0,0, overlappingIngredients.size());
+                ingredients.copyFromArray(
+                        overlappingIngredients.toArray(
+                                new Ingredient[0]), 0, 0, overlappingIngredients.size());
 
-               drug.setIngredients(ingredients);
-           }
+                drug.setIngredients(ingredients);
+            }
         });
 
         drugs.forEach(TOP::addToIndexes);
@@ -231,33 +231,33 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     private void associateAttributesAndIngredients(JCas jcas) {
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
-                        jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
+                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
 
-                            Drug drug = (Drug) annotation;
+                    Drug drug = (Drug) annotation;
 
-                            // attributes are assumed not to be contained in drug names
-                            List<MedAttr> filteredAttributes = attributes.stream()
-                                    .filter(attribute ->
-                                            attribute.getBegin() >= window.getBegin() &&
-                                                    attribute.getEnd() <= window.getEnd())
-                                    .collect(Collectors.toList());
+                    // attributes are assumed not to be contained in drug names
+                    List<MedAttr> filteredAttributes = attributes.stream()
+                            .filter(attribute ->
+                                    attribute.getBegin() >= window.getBegin() &&
+                                            attribute.getEnd() <= window.getEnd())
+                            .collect(Collectors.toList());
 
-                            if (filteredAttributes.size() > 0) {
-                                FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
+                    if (filteredAttributes.size() > 0) {
+                        FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
 
-                                IntStream.range(0, filteredAttributes.size())
-                                        .forEach(index ->
-                                                attributesArray.set(index, filteredAttributes.get(index))
-                                        );
-
-                                drug.setAttrs(attributesArray);
-
-                                getContext().getLogger().log(Level.INFO, "Associating attributes: " +
-                                        FhirQueryUtils.getCoveredTextFromAnnotations(filteredAttributes) +
-                                        " with drug: " + drug.getCoveredText()
+                        IntStream.range(0, filteredAttributes.size())
+                                .forEach(index ->
+                                        attributesArray.set(index, filteredAttributes.get(index))
                                 );
-                            }
-                        })
+
+                        drug.setAttrs(attributesArray);
+
+                        getContext().getLogger().log(Level.INFO, "Associating attributes: " +
+                                FhirQueryUtils.getCoveredTextFromAnnotations(filteredAttributes) +
+                                " with drug: " + drug.getCoveredText()
+                        );
+                    }
+                })
         );
     }
 
@@ -285,9 +285,13 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                             sourceDrug.getCoveredText() +
                             " with drug: " + targetDrug.getCoveredText()
                     );
+
+                    drugsMerged = true;
                 }
             }
         }
+
+        return drugsMerged;
     }
 
     @SuppressWarnings("UnstableApiUsage")
