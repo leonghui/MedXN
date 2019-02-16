@@ -19,6 +19,7 @@ package org.ohnlp.medxn.fhir;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
+import com.google.common.collect.ImmutableList;
 import org.hl7.fhir.dstu3.model.*;
 
 import java.io.BufferedReader;
@@ -50,8 +51,8 @@ public class FhirQueryClient {
         return new FhirQueryClient(url, timeout);
     }
 
-    private List<? extends Resource> getAllResources(String className) {
-        List<? extends Resource> resources = new ArrayList<>();
+    private ImmutableList<? extends Resource> getAllResources(String className) {
+        ImmutableList<? extends Resource> resources = null;
 
         Path path = getCachedFilePath(className);
 
@@ -75,7 +76,7 @@ public class FhirQueryClient {
 
     }
 
-    private List<? extends Resource> queryResources(String className) {
+    private ImmutableList<? extends Resource> queryResources(String className) {
         List<Resource> resources = new ArrayList<>();
 
         try {
@@ -104,20 +105,26 @@ public class FhirQueryClient {
             System.out.println("Please check FHIR_SERVER_URL, increase TIMEOUT_SEC, or reduce QUERY_SIZE.");
         }
 
-        return resources;
+        return ImmutableList.copyOf(resources);
     }
 
 
-    private List<? extends Resource> readCachedResources(String className) {
-        List<Resource> resources = new ArrayList<>();
-
+    @SuppressWarnings("UnstableApiUsage")
+    private ImmutableList<? extends Resource> readCachedResources(String className) {
         Path path = getCachedFilePath(className);
 
+        ImmutableList<Resource> resources = null;
+
         try {
+
             BufferedReader reader = Files.newBufferedReader(path);
 
             Bundle bundle = context.newJsonParser().parseResource(Bundle.class, reader);
-            bundle.getEntry().forEach(entry -> resources.add(entry.getResource()));
+
+            resources = bundle.getEntry().stream()
+                    .map(Bundle.BundleEntryComponent::getResource)
+                    .collect(ImmutableList.toImmutableList());
+
             reader.close();
 
         } catch (IOException ioe) {
@@ -128,7 +135,7 @@ public class FhirQueryClient {
         return resources;
     }
 
-    private void writeCachedResources(String className, List<? extends Resource> resources) {
+    private void writeCachedResources(String className, ImmutableList<? extends Resource> resources) {
 
         Path path = getCachedFilePath(className);
 
@@ -151,13 +158,13 @@ public class FhirQueryClient {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Medication> getAllMedications() {
-        return (List<Medication>) getAllResources("Medication");
+    public ImmutableList<Medication> getAllMedications() {
+        return (ImmutableList<Medication>) getAllResources("Medication");
     }
 
     @SuppressWarnings("unchecked")
-    public List<Substance> getAllSubstances() {
-        return (List<Substance>) getAllResources("Substance");
+    public ImmutableList<Substance> getAllSubstances() {
+        return (ImmutableList<Substance>) getAllResources("Substance");
     }
 
     public String getFhirServerUrl() {
@@ -180,19 +187,4 @@ public class FhirQueryClient {
 
         return dosageFormMap;
     }
-
-/*    public ImmutableSetMultimap<String, String> getMedicationSubstanceMultimap() {
-        SetMultimap<String, String> medicationSubstanceMap = HashMultimap.create();
-
-        getAllMedications().parallelStream()
-                .forEach(medication -> {
-                    String key = medication.getCode().getCodingFirstRep().getCode();
-                    FhirQueryUtils.getIngredientsFromMedication(medication)
-                            .forEach(substance ->
-                                    medicationSubstanceMap.put(key, substance)
-                            );
-                });
-
-        return ImmutableSetMultimap.copyOf(medicationSubstanceMap);
-    }*/
 }
