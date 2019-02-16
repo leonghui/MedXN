@@ -173,7 +173,14 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     int nextSentenceEnd = sentenceIndex < sortedSentences.size() - 1 ?
                             sortedSentences.get(sentenceIndex + 1).getEnd() : sentence.getEnd();
 
-                    int windowEnd = nextDrugBegin < nextSentenceEnd ? nextDrugBegin : nextSentenceEnd;
+                    int nextTerminatorEnd = formsRoutesFrequencies.stream()
+                            .filter(medAttr -> medAttr.getBegin() > drug.getEnd())
+                            .map(MedAttr::getEnd)
+                            .max(Integer::compare)
+                            .orElse(Integer.MAX_VALUE);
+
+                    // choose the smallest value out of the 3 criteria
+                    int windowEnd = Math.min(nextDrugBegin, Math.min(nextSentenceEnd, nextTerminatorEnd));
 
                     window.setEnd(windowEnd);
 
