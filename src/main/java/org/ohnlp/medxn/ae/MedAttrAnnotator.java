@@ -34,6 +34,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
+import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.io.BufferedReader;
@@ -51,19 +52,14 @@ import java.util.regex.Pattern;
  * Extract medication attributes defined in regExPatterns
  */
 public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
+	private final FhirQueryUtils.LookupTable doseForms = new FhirQueryUtils.LookupTable();
+
 	class Attribute {
 		String tag;
 		String text;
 		int begin;
 		int end;
 	}
-
-	// Data structure to store keywords
-	// rxCui, keyword
-	private final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
-
-	// data structure that stores the TRIE
-	private Trie trie;
 
 	private Map< String, List<String> > regExPat;
 
@@ -78,16 +74,16 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 
 		queryClient.getDosageFormMap().forEach((rxCui, term) -> {
 
-			keywordMap.put(rxCui, term.toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.toLowerCase());
 
 			// enrich keyword map with common abbreviations
-			keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
-			keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
 		});
 
 		List<String> commonOmittedWords = Arrays.asList(
@@ -105,7 +101,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 
 		SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
 
-		keywordMap.entries().forEach(
+		doseForms.keywordMap.entries().forEach(
 				entry -> commonOmittedWords.forEach(word -> {
 					Pattern pattern = Pattern.compile(word, Pattern.CASE_INSENSITIVE);
 					Matcher matcher = pattern.matcher(entry.getValue());
@@ -115,7 +111,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 				}));
 
 		// enrich keyword map with plural terms
-		keywordMap.entries().forEach(entry -> {
+		doseForms.keywordMap.entries().forEach(entry -> {
 			Pattern endsWithS = Pattern.compile("s$");
 			Matcher endsWithSMatcher = endsWithS.matcher(entry.getValue());
 
@@ -131,13 +127,13 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 			}
 		});
 
-		keywordMap.putAll(additionalKeywords);
+		doseForms.keywordMap.putAll(additionalKeywords);
 
-		trie = Trie.builder()
+		doseForms.trie = Trie.builder()
 				.ignoreCase()
 				.ignoreOverlaps()
 				.onlyWholeWords()
-				.addKeywords(keywordMap.values())
+				.addKeywords(doseForms.keywordMap.values())
 				.build();
 
 		try {
@@ -201,7 +197,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 					.replaceAll("\\s+", " ") // replace all whitespace characters with a space
 					.replaceAll("(\\p{Punct})", " "); // replace all punctuations with a space
 
-			trie.parseText(sanitizedText).forEach(emit -> {
+			doseForms.trie.parseText(sanitizedText).forEach(emit -> {
 				Attribute attr = new Attribute();
 				attr.tag = "form";
 				attr.text = emit.getKeyword();
