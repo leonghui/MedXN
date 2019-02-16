@@ -77,6 +77,8 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
 
                                     newIngredient.setAmountValue(value);
                                     newIngredient.setAmountUnit(unit);
+                                    newIngredient.setItem(""); // avoid null ingredients
+
                                     newIngredientArray.set(0, newIngredient);
 
                                     drug.setIngredients(newIngredientArray);
@@ -98,6 +100,7 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                                         Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
                                         newIngredient.setAmountValue(value);
                                         newIngredient.setAmountUnit(unit);
+                                        newIngredient.setItem(""); // avoid null ingredients
 
                                         int arraySize = drug.getIngredients().size();
 
