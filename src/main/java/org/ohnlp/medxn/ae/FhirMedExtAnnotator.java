@@ -26,7 +26,9 @@
 
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.*;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.cas.FeatureStructure;
@@ -36,7 +38,6 @@ import org.apache.uima.jcas.cas.TOP;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
 import org.hl7.fhir.dstu3.model.Medication;
-import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -56,9 +57,7 @@ import java.util.stream.Stream;
 
 public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
-    private ImmutableList<ConceptMention> concepts;
     private ImmutableList<MedAttr> attributes;
-    private ImmutableList<Ingredient> ingredients;
     private ImmutableList<Sentence> sortedSentences;
     private ImmutableList<MedAttr> formsRoutesFrequencies;
     private List<Medication> allMedications;
@@ -78,9 +77,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     @SuppressWarnings("UnstableApiUsage")
     @Override
     public void process(JCas jcas) {
-        concepts = ImmutableList.copyOf(jcas.getAnnotationIndex(ConceptMention.type));
         attributes = ImmutableList.copyOf(jcas.getAnnotationIndex(MedAttr.type));
-        ingredients = ImmutableList.copyOf(jcas.getAnnotationIndex(Ingredient.type));
         sortedSentences = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Sentence::getBegin).thenComparingInt(Sentence::getEnd),
                 jcas.getAnnotationIndex(Sentence.type)
@@ -222,8 +219,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private boolean compareIngredientsAndMergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
         boolean drugsMerged = false;
 
-        ImmutableList<String> targetIngredients = null;
-
         ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
 
         Set<Medication> targetMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
@@ -232,7 +227,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
         // don't add ingredients that are already found in the drug
         if (targetDrug.getIngredients() != null) {
-            targetIngredients = Streams.stream(targetDrug.getIngredients())
+            ImmutableList<String> targetIngredients = Streams.stream(targetDrug.getIngredients())
                     .map(Ingredient.class::cast)
                     .map(Ingredient::getItem)
                     .collect(ImmutableList.toImmutableList());
@@ -287,11 +282,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     .sorted(Comparator.comparingInt(MedAttr::getBegin))
                     .collect(ImmutableSet.toImmutableSet());
         } else if (sourceDrug.getAttrs() != null) {
-            mergedAttributes = Streams.stream(sourceDrug.getAttrs())
-                    .collect(ImmutableSet.toImmutableSet());
+            mergedAttributes = ImmutableSet.copyOf(sourceDrug.getAttrs());
         } else if (targetDrug.getAttrs() != null) {
-            mergedAttributes = Streams.stream(targetDrug.getAttrs())
-                    .collect(ImmutableSet.toImmutableSet());
+            mergedAttributes = ImmutableSet.copyOf(targetDrug.getAttrs());
         }
 
         if (mergedAttributes != null && mergedAttributes.size() > 0) {
@@ -313,11 +306,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     .sorted(Comparator.comparingInt(Ingredient::getBegin))
                     .collect(ImmutableSet.toImmutableSet());
         } else if (sourceDrug.getIngredients() != null) {
-            mergedIngredients = Streams.stream(sourceDrug.getIngredients())
-                    .collect(ImmutableSet.toImmutableSet());
+            mergedIngredients = ImmutableSet.copyOf(sourceDrug.getIngredients());
         } else if (targetDrug.getIngredients() != null) {
-            mergedIngredients = Streams.stream(targetDrug.getIngredients())
-                    .collect(ImmutableSet.toImmutableSet());
+            mergedIngredients = ImmutableSet.copyOf(targetDrug.getIngredients());
         }
 
         if (mergedIngredients != null && mergedIngredients.size() > 0) {
