@@ -67,8 +67,6 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 
 	private Map< String, List<String> > regExPat;
 
-	private FhirQueryClient queryClient;
-
 	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
 		super.initialize(uimaContext);
 		regExPat = new HashMap<>();
@@ -76,7 +74,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 		// Get config parameter values
 		String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
 		int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
-		queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+		FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
 		queryClient.getDosageFormMap().forEach((rxCui, term) -> {
 
@@ -107,14 +105,30 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 
 		SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
 
-		keywordMap.entries().forEach( entry -> {
-			commonOmittedWords.forEach( word -> {
-				Pattern pattern = Pattern.compile(word, Pattern.CASE_INSENSITIVE);
-				Matcher matcher = pattern.matcher(entry.getValue());
-				if (matcher.find()) {
-					additionalKeywords.put(entry.getKey(), matcher.replaceAll("").trim());
+		keywordMap.entries().forEach(
+				entry -> commonOmittedWords.forEach(word -> {
+					Pattern pattern = Pattern.compile(word, Pattern.CASE_INSENSITIVE);
+					Matcher matcher = pattern.matcher(entry.getValue());
+					if (matcher.find()) {
+						additionalKeywords.put(entry.getKey(), matcher.replaceAll("").trim());
+					}
+				}));
+
+		// enrich keyword map with plural terms
+		keywordMap.entries().forEach(entry -> {
+			Pattern endsWithS = Pattern.compile("s$");
+			Matcher endsWithSMatcher = endsWithS.matcher(entry.getValue());
+
+			Pattern endsWithLyOrRy = Pattern.compile("(?<=[l|r])(y$)");
+			Matcher endsWithLyOrRyMatcher = endsWithLyOrRy.matcher(entry.getValue());
+
+			if (!endsWithSMatcher.find()) {
+				if (endsWithLyOrRyMatcher.find()) {
+					additionalKeywords.put(entry.getKey(), endsWithLyOrRyMatcher.replaceFirst("ies"));
+				} else {
+					additionalKeywords.put(entry.getKey(), entry.getValue().concat("s"));
 				}
-			});
+			}
 		});
 
 		keywordMap.putAll(additionalKeywords);

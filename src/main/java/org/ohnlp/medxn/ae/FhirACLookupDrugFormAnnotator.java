@@ -17,6 +17,8 @@
 package org.ohnlp.medxn.ae;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.SetMultimap;
 import org.ahocorasick.trie.Emit;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
@@ -30,6 +32,7 @@ import org.ohnlp.medxn.type.MedAttr;
 
 import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
@@ -59,6 +62,27 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
             dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
             dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
         });
+
+        SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
+
+        // enrich keyword map with plural terms
+        dosageForms.keywordMap.entries().forEach(entry -> {
+            Pattern endsWithS = Pattern.compile("s$");
+            Matcher endsWithSMatcher = endsWithS.matcher(entry.getValue());
+
+            Pattern endsWithLyOrRy = Pattern.compile("(?<=[l|r])(y$)");
+            Matcher endsWithLyOrRyMatcher = endsWithLyOrRy.matcher(entry.getValue());
+
+            if (!endsWithSMatcher.find()) {
+                if (endsWithLyOrRyMatcher.find()) {
+                    additionalKeywords.put(entry.getKey(), endsWithLyOrRyMatcher.replaceFirst("ies"));
+                } else {
+                    additionalKeywords.put(entry.getKey(), entry.getValue().concat("s"));
+                }
+            }
+        });
+
+        dosageForms.keywordMap.putAll(additionalKeywords);
 
         dosageForms.trie = Trie.builder()
                 .ignoreCase()
