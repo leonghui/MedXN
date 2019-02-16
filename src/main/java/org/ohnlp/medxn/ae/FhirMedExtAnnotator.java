@@ -181,28 +181,34 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
                 Drug drug = sortedDrugs.get(drugIndex);
 
-                // SCENARIO 1: Brand name is followed by ingredient name
-                if (drug.getBrand() != null && drugIndex + 1 < sortedDrugs.size()) {
-                    Drug nextDrug = sortedDrugs.get(drugIndex + 1);
 
-                    getContext().getLogger().log(Level.INFO, "Looking ahead: " +
-                            nextDrug.getCoveredText() +
-                            " with drug: " + drug.getCoveredText()
-                    );
+                if (drug.getBrand() != null) {
+                    if (drugIndex + 1 < sortedDrugs.size()) {
+                        Drug nextDrug = sortedDrugs.get(drugIndex + 1);
 
-                    drugsModified.set(compareIngredientsAndMergeDrugs(jcas, nextDrug, drug));
+                        getContext().getLogger().log(Level.INFO, "Looking ahead: " +
+                                nextDrug.getCoveredText() +
+                                " with drug: " + drug.getCoveredText()
+                        );
 
-                    // SCENARIO 2: Ingredient name is followed by brand name
-                } else if (drug.getBrand() != null && drugIndex > 0) {
+                        // SCENARIO 1: Brand name is followed by ingredient name
+                        if (nextDrug.getBrand() == null) {
+                            drugsModified.set(compareIngredientsAndMergeDrugs(jcas, nextDrug, drug));
+                        }
 
-                    Drug prevDrug = sortedDrugs.get(drugIndex - 1);
+                    } else if (drugIndex > 0) {
+                        Drug prevDrug = sortedDrugs.get(drugIndex - 1);
 
-                    getContext().getLogger().log(Level.INFO, "Looking backward: " +
-                            prevDrug.getCoveredText() +
-                            " with drug: " + drug.getCoveredText()
-                    );
+                        getContext().getLogger().log(Level.INFO, "Looking backward: " +
+                                prevDrug.getCoveredText() +
+                                " with drug: " + drug.getCoveredText()
+                        );
 
-                    drugsModified.set(compareIngredientsAndMergeDrugs(jcas, prevDrug, drug));
+                        // SCENARIO 2: Ingredient name is followed by brand name
+                        if (prevDrug.getBrand() == null) {
+                            drugsModified.set(compareIngredientsAndMergeDrugs(jcas, prevDrug, drug));
+                        }
+                    }
                 }
             });
         } while (drugsModified.get());
@@ -284,30 +290,39 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private boolean compareIngredientsAndMergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
         boolean drugsMerged = false;
 
-        if (sourceDrug.getBrand() == null) {
-            ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
+        ImmutableList<String> targetIngredients = null;
 
-            Set<Medication> brandedMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
+        ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
 
-            ImmutableList<String> productIngredients = ImmutableList
-                    .copyOf(FhirQueryUtils.getIngredientsFromMedications(brandedMedications));
+        Set<Medication> targetMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
 
-            if (sourceDrug.getIngredients() != null) {
-                ImmutableList<String> genericIngredients = Streams.stream(sourceDrug.getIngredients())
-                        .map(Ingredient.class::cast)
-                        .map(Ingredient::getItem)
-                        .collect(ImmutableList.toImmutableList());
+        ArrayList<String> candidateIngredients = new ArrayList<>(FhirQueryUtils.getIngredientsFromMedications(targetMedications));
 
-                if (productIngredients.containsAll(genericIngredients)) {
-                    mergeDrugs(jcas, sourceDrug, targetDrug);
+        // don't add ingredients that are already found in the drug
+        if (targetDrug.getIngredients() != null) {
+            targetIngredients = Streams.stream(targetDrug.getIngredients())
+                    .map(Ingredient.class::cast)
+                    .map(Ingredient::getItem)
+                    .collect(ImmutableList.toImmutableList());
 
-                    getContext().getLogger().log(Level.INFO, "Merged drug: " +
-                            sourceDrug.getCoveredText() +
-                            " with drug: " + targetDrug.getCoveredText()
-                    );
+            candidateIngredients.removeAll(targetIngredients);
+        }
 
-                    drugsMerged = true;
-                }
+        if (sourceDrug.getIngredients() != null) {
+            ImmutableList<String> sourceIngredients = Streams.stream(sourceDrug.getIngredients())
+                    .map(Ingredient.class::cast)
+                    .map(Ingredient::getItem)
+                    .collect(ImmutableList.toImmutableList());
+
+            if (candidateIngredients.containsAll(sourceIngredients)) {
+                mergeDrugs(jcas, sourceDrug, targetDrug);
+
+                getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                        sourceDrug.getCoveredText() +
+                        " with drug: " + targetDrug.getCoveredText()
+                );
+
+                drugsMerged = true;
             }
         }
 
