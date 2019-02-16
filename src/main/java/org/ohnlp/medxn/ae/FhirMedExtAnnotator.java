@@ -102,11 +102,12 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     @SuppressWarnings("UnstableApiUsage")
     private void convertConceptMentions(JCas jcas) {
         List<Drug> drugs = new ArrayList<>();
+        List<ConceptMention> conceptsRemaining = new ArrayList<>(concepts);
 
         // SCENARIO 1: ingredients are ordered with form or route or frequency towards the end (terminator)
         SetMultimap<MedAttr, ConceptMention> conceptsByClosestTerminator = LinkedHashMultimap.create();
 
-        concepts.forEach(concept -> formsRoutesFrequencies.stream()
+        conceptsRemaining.forEach(concept -> formsRoutesFrequencies.stream()
                 .filter(attribute ->
                         attribute.getBegin() > concept.getEnd())
                 .min(Comparator.comparingInt(MedAttr::getBegin))
@@ -120,19 +121,20 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 .ifPresent(concept -> {
                             Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
                             drugs.add(drug);
+                            conceptsRemaining.remove(concept);
                         }
                 ));
 
         // SCENARIO 2: ingredients ordered without terminators are standalone drugs
-        IntStream.range(0, concepts.size()).forEach(index -> {
-            ConceptMention concept = concepts.get(index);
+        IntStream.range(0, conceptsRemaining.size()).forEach(index -> {
+            ConceptMention concept = conceptsRemaining.get(index);
 
             // consider the last ingredient as a standalone drug
-            if (index + 1 == concepts.size()) {
+            if (index + 1 == conceptsRemaining.size()) {
                 Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
                 drugs.add(drug);
-            } else if (index + 1 < concepts.size()) {
-                ConceptMention nextConcept = concepts.get(index + 1);
+            } else if (index + 1 < conceptsRemaining.size()) {
+                ConceptMention nextConcept = conceptsRemaining.get(index + 1);
 
                 boolean terminatorFound = formsRoutesFrequencies.stream().anyMatch(attribute ->
                         attribute.getBegin() > concept.getEnd() &&
