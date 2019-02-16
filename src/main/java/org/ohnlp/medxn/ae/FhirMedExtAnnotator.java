@@ -26,10 +26,7 @@
 
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.*;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.cas.FeatureStructure;
@@ -268,10 +265,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     if (filteredAttributes.size() > 0) {
                         FSArray attributesArray = new FSArray(jcas, filteredAttributes.size());
 
-                        IntStream.range(0, filteredAttributes.size())
-                                .forEach(index ->
-                                        attributesArray.set(index, filteredAttributes.get(index))
-                                );
+                        attributesArray.copyFromArray(
+                                filteredAttributes.toArray(
+                                        new FeatureStructure[0]),0,0,filteredAttributes.size());
 
                         drug.setAttrs(attributesArray);
 
@@ -297,10 +293,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     .copyOf(FhirQueryUtils.getIngredientsFromMedications(brandedMedications));
 
             if (sourceDrug.getIngredients() != null) {
-                ImmutableList<String> genericIngredients = ImmutableList
-                        .copyOf(sourceDrug.getIngredients())
-                        .stream()
-                        .map(featureStructure -> (Ingredient) featureStructure)
+                ImmutableList<String> genericIngredients = Streams.stream(sourceDrug.getIngredients())
+                        .map(Ingredient.class::cast)
                         .map(Ingredient::getItem)
                         .collect(ImmutableList.toImmutableList());
 
@@ -339,16 +333,15 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         ImmutableSet<FeatureStructure> mergedAttributes = null;
 
         if (sourceDrug.getAttrs() != null && targetDrug.getAttrs() != null) {
-            mergedAttributes = Stream.of(
-                    ImmutableList.copyOf(sourceDrug.getAttrs()),
-                    ImmutableList.copyOf(targetDrug.getAttrs()))
-                    .flatMap(ImmutableList::stream)
+            mergedAttributes = Stream.concat(
+                    Streams.stream(sourceDrug.getAttrs()),
+                    Streams.stream(targetDrug.getAttrs()))
                     .collect(ImmutableSet.toImmutableSet());
         } else if (sourceDrug.getAttrs() != null) {
-            mergedAttributes = ImmutableList.copyOf(sourceDrug.getAttrs()).stream()
+            mergedAttributes = Streams.stream(sourceDrug.getAttrs())
                     .collect(ImmutableSet.toImmutableSet());
         } else if (targetDrug.getAttrs() != null) {
-            mergedAttributes = ImmutableList.copyOf(targetDrug.getAttrs()).stream()
+            mergedAttributes = Streams.stream(targetDrug.getAttrs())
                     .collect(ImmutableSet.toImmutableSet());
         }
 
@@ -364,16 +357,15 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         ImmutableSet<FeatureStructure> mergedIngredients = null;
 
         if (sourceDrug.getIngredients() != null && targetDrug.getIngredients() != null) {
-            mergedIngredients = Stream.of(
-                    ImmutableList.copyOf(sourceDrug.getIngredients()),
-                    ImmutableList.copyOf(targetDrug.getIngredients()))
-                    .flatMap(ImmutableList::stream)
+            mergedIngredients = Stream.concat(
+                    Streams.stream(sourceDrug.getIngredients()),
+                    Streams.stream(targetDrug.getIngredients()))
                     .collect(ImmutableSet.toImmutableSet());
         } else if (sourceDrug.getIngredients() != null) {
-            mergedIngredients = ImmutableList.copyOf(sourceDrug.getIngredients()).stream()
+            mergedIngredients = Streams.stream(sourceDrug.getIngredients())
                     .collect(ImmutableSet.toImmutableSet());
         } else if (targetDrug.getIngredients() != null) {
-            mergedIngredients = ImmutableList.copyOf(targetDrug.getIngredients()).stream()
+            mergedIngredients = Streams.stream(targetDrug.getIngredients())
                     .collect(ImmutableSet.toImmutableSet());
         }
 

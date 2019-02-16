@@ -17,6 +17,7 @@
 package org.ohnlp.medxn.ae;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
@@ -51,8 +52,8 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
 
                     if (drug.getAttrs() != null) {
 
-                        ImmutableList<MedAttr> strengths = ImmutableList.copyOf(drug.getAttrs()).stream()
-                                .map(featureStructure -> (MedAttr) featureStructure)
+                        ImmutableList<MedAttr> strengths = Streams.stream(drug.getAttrs())
+                                .map(MedAttr.class::cast)
                                 .filter(attribute ->
                                         attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH))
                                 .collect(ImmutableList.toImmutableList());
@@ -83,9 +84,8 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                                 } else {
                                     // SCENARIO 1: drug strengths are always written after drug names
                                     // look backward and assign strength to the closest ingredient
-                                    Optional<Ingredient> closestIngredient = ImmutableList.copyOf(drug.getIngredients())
-                                            .stream()
-                                            .map(featureStructure -> (Ingredient) featureStructure)
+                                    Optional<Ingredient> closestIngredient = Streams.stream(drug.getIngredients())
+                                            .map(Ingredient.class::cast)
                                             .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
                                                     && (ingredient.getAmountUnit() == null ||
                                                     ingredient.getAmountValue() == 0.0))
