@@ -131,7 +131,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         IntStream.range(0, concepts.size()).forEach(index -> {
             ConceptMention concept = concepts.get(index);
 
-            if (index < concepts.size() - 1) {
+            if (index + 1 < concepts.size()) {
                 ConceptMention nextConcept = concepts.get(index + 1);
 
                 boolean terminatorFound = formsRoutesFrequencies.stream().anyMatch(attribute ->
@@ -142,6 +142,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
                     drugs.add(drug);
                 }
+            } else if (concepts.size() == 1) {
+                Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
+                drugs.add(drug);
             }
         });
 
@@ -178,7 +181,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
             Drug drug = sortedDrugs.get(drugIndex);
 
-            if (drug.getBrand() != null) {
+            if (drug.getBrand() != null && drugIndex + 1 < sortedDrugs.size()) {
                 Drug nextDrug = sortedDrugs.get(drugIndex + 1);
 
                 if (nextDrug.getBrand() == null) {
@@ -234,7 +237,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                     window.setBegin(drug.getBegin());
 
-                    int nextDrugBegin = drugIndex < sortedDrugs.size() - 1 ?
+                    int nextDrugBegin = drugIndex + 1 < sortedDrugs.size() ?
                             sortedDrugs.get(drugIndex + 1).getBegin() : Integer.MAX_VALUE;
 
                     int nextSentenceEnd = sentenceIndex < sortedSentences.size() - 1 ?
