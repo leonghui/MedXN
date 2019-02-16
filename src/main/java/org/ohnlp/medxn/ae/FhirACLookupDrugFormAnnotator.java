@@ -19,6 +19,7 @@ package org.ohnlp.medxn.ae;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Streams;
 import org.ahocorasick.trie.Emit;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
@@ -37,8 +38,10 @@ import java.util.regex.Pattern;
 
 public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
-    private final FhirQueryUtils.LookupTable dosageForms = new FhirQueryUtils.LookupTable();
+    private final FhirQueryUtils.LookupTable doseForms = new FhirQueryUtils.LookupTable();
     private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
+    private final Pattern endsWithS = Pattern.compile("s$");
+    private final Pattern endsWithLyOrRy = Pattern.compile("(?<=[l|r])(y$)");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -51,26 +54,23 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient.getDosageFormMap().forEach((rxCui, term) -> {
 
-            dosageForms.keywordMap.put(rxCui, term.toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.toLowerCase());
 
             // enrich keyword map with common abbreviations
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
-            dosageForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
         });
 
         SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
 
         // enrich keyword map with plural terms
-        dosageForms.keywordMap.entries().forEach(entry -> {
-            Pattern endsWithS = Pattern.compile("s$");
+        doseForms.keywordMap.entries().forEach(entry -> {
             Matcher endsWithSMatcher = endsWithS.matcher(entry.getValue());
-
-            Pattern endsWithLyOrRy = Pattern.compile("(?<=[l|r])(y$)");
             Matcher endsWithLyOrRyMatcher = endsWithLyOrRy.matcher(entry.getValue());
 
             if (!endsWithSMatcher.find()) {
@@ -82,13 +82,13 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
             }
         });
 
-        dosageForms.keywordMap.putAll(additionalKeywords);
+        doseForms.keywordMap.putAll(additionalKeywords);
 
-        dosageForms.trie = Trie.builder()
+        doseForms.trie = Trie.builder()
                 .ignoreCase()
                 .ignoreOverlaps()
                 .onlyWholeWords()
-                .addKeywords(dosageForms.keywordMap.values())
+                .addKeywords(doseForms.keywordMap.values())
                 .build();
     }
 
@@ -100,13 +100,13 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
             if (drug.getAttrs() != null) {
 
-                ImmutableList<MedAttr> forms = ImmutableList.copyOf(drug.getAttrs()).stream()
-                        .map(featureStructure -> (MedAttr) featureStructure)
+                ImmutableList<MedAttr> forms = Streams.stream(drug.getAttrs())
+                        .map(MedAttr.class::cast)
                         .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.FORM))
                         .collect(ImmutableList.toImmutableList());
 
-                ImmutableList<MedAttr> routes = ImmutableList.copyOf(drug.getAttrs()).stream()
-                        .map(featureStructure -> (MedAttr) featureStructure)
+                ImmutableList<MedAttr> routes = Streams.stream(drug.getAttrs())
+                        .map(MedAttr.class::cast)
                         .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE))
                         .collect(ImmutableList.toImmutableList());
 
@@ -164,28 +164,28 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
                     Emit matchedForm = null;
 
-                    if (dosageForms.trie.containsMatch(sanitizedDosageForm)) {
-                        matchedForm = dosageForms.trie.firstMatch(sanitizedDosageForm);
+                    if (doseForms.trie.containsMatch(sanitizedDosageForm)) {
+                        matchedForm = doseForms.trie.firstMatch(sanitizedDosageForm);
 
                     } else {
                         if (oralContextFlag.get() &&
-                                dosageForms.trie.containsMatch("oral " + sanitizedDosageForm)) {
-                            matchedForm = dosageForms.trie.firstMatch("oral " + sanitizedDosageForm);
+                                doseForms.trie.containsMatch("oral " + sanitizedDosageForm)) {
+                            matchedForm = doseForms.trie.firstMatch("oral " + sanitizedDosageForm);
                         } else if (vaginalContextFlag.get() &&
-                                dosageForms.trie.containsMatch("vaginal " + sanitizedDosageForm)) {
-                            matchedForm = dosageForms.trie.firstMatch("vaginal " + sanitizedDosageForm);
+                                doseForms.trie.containsMatch("vaginal " + sanitizedDosageForm)) {
+                            matchedForm = doseForms.trie.firstMatch("vaginal " + sanitizedDosageForm);
                         } else if (rectalContextFlag.get() &&
-                                dosageForms.trie.containsMatch("rectal " + sanitizedDosageForm)) {
-                            matchedForm = dosageForms.trie.firstMatch("rectal " + sanitizedDosageForm);
+                                doseForms.trie.containsMatch("rectal " + sanitizedDosageForm)) {
+                            matchedForm = doseForms.trie.firstMatch("rectal " + sanitizedDosageForm);
                         } else if (topicalContextFlag.get() &&
-                                dosageForms.trie.containsMatch("topical " + sanitizedDosageForm)) {
-                            matchedForm = dosageForms.trie.firstMatch("topical " + sanitizedDosageForm);
+                                doseForms.trie.containsMatch("topical " + sanitizedDosageForm)) {
+                            matchedForm = doseForms.trie.firstMatch("topical " + sanitizedDosageForm);
                         }
                     }
 
                     if (matchedForm != null) {
                         String rxCui = FhirQueryUtils
-                                .getRxCuiFromKeywordMap(dosageForms.keywordMap, matchedForm.getKeyword());
+                                .getRxCuiFromKeywordMap(doseForms.keywordMap, matchedForm.getKeyword());
                         drug.setForm(rxCui);
                     }
                 }
