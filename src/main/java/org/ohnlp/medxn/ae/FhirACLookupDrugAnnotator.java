@@ -30,6 +30,7 @@ import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
+import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -142,6 +143,14 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         concept.setSemGroup(rxCui + "::IN");
                         concept.setSentence((Sentence) sentence);
                         concept.addToIndexes(jcas);
+
+                        Drug drug = new Drug(jcas, begin, end);
+
+                        FSArray ingredientArray = new FSArray(jcas, 1);
+                        ingredientArray.set(0, ingredient);
+                        drug.setIngredients(ingredientArray);
+
+                        drug.addToIndexes(jcas);
                     });
                 })
         );

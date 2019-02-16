@@ -93,79 +93,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                         attribute.getTag().equals(FhirQueryUtils.MedAttrConstants.FREQUENCY))
                 .collect(ImmutableList.toImmutableList());
 
-        convertConceptMentions(jcas);
         mergeBrandAndGenerics(jcas);
         createLookupWindows(jcas);
         associateAttributesAndIngredients(jcas);
-    }
-
-    @SuppressWarnings("UnstableApiUsage")
-    private void convertConceptMentions(JCas jcas) {
-        List<Drug> drugs = new ArrayList<>();
-        List<ConceptMention> conceptsRemaining = new ArrayList<>(concepts);
-
-        // SCENARIO 1: ingredients are ordered with form or route or frequency towards the end (terminator)
-        SetMultimap<MedAttr, ConceptMention> conceptsByClosestTerminator = LinkedHashMultimap.create();
-
-        conceptsRemaining.forEach(concept -> formsRoutesFrequencies.stream()
-                .filter(attribute ->
-                        attribute.getBegin() > concept.getEnd())
-                .min(Comparator.comparingInt(MedAttr::getBegin))
-                .ifPresent(closestAttribute ->
-                        conceptsByClosestTerminator.put(closestAttribute, concept)
-                ));
-
-        // SCENARIO 1.1: prioritize the ingredient closest to the terminator
-        conceptsByClosestTerminator.asMap().forEach((key, value) -> value.stream()
-                .max(Comparator.comparingInt(ConceptMention::getBegin))
-                .ifPresent(concept -> {
-                            Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
-                            drugs.add(drug);
-                            conceptsRemaining.remove(concept);
-                        }
-                ));
-
-        // SCENARIO 2: ingredients ordered without terminators are standalone drugs
-        IntStream.range(0, conceptsRemaining.size()).forEach(index -> {
-            ConceptMention concept = conceptsRemaining.get(index);
-
-            // consider the last ingredient as a standalone drug
-            if (index + 1 == conceptsRemaining.size()) {
-                Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
-                drugs.add(drug);
-            } else if (index + 1 < conceptsRemaining.size()) {
-                ConceptMention nextConcept = conceptsRemaining.get(index + 1);
-
-                boolean terminatorFound = formsRoutesFrequencies.stream().anyMatch(attribute ->
-                        attribute.getBegin() > concept.getEnd() &&
-                                attribute.getEnd() < nextConcept.getBegin());
-
-                if (!terminatorFound) {
-                    Drug drug = new Drug(jcas, concept.getBegin(), concept.getEnd());
-                    drugs.add(drug);
-                }
-            }
-        });
-
-        drugs.forEach(drug -> {
-            ImmutableList<Ingredient> overlappingIngredients = ingredients.stream()
-                    .filter(ingredient ->
-                            ingredient.getBegin() >= drug.getBegin() &&
-                                    ingredient.getEnd() <= drug.getEnd())
-                    .collect(ImmutableList.toImmutableList());
-
-            if (overlappingIngredients.size() > 0) {
-                FSArray ingredients = new FSArray(jcas, overlappingIngredients.size());
-
-                ingredients.copyFromArray(
-                        overlappingIngredients.toArray(
-                                new Ingredient[0]), 0, 0, overlappingIngredients.size());
-
-                drug.setIngredients(ingredients);
-            }
-        });
-
-        drugs.forEach(TOP::addToIndexes);
     }
 
     private void mergeBrandAndGenerics(JCas jcas) {
