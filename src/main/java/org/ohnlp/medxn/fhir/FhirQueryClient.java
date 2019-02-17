@@ -59,6 +59,16 @@ public class FhirQueryClient {
         if (Files.exists(path)) {
             if (Files.isReadable(path)) {
                 resources = readCachedResources(className);
+
+                int tryCount = 0;
+                // retry if time-out errors
+                while (resources.isEmpty() && tryCount < 3) {
+                    System.out.println("WARN: Empty " + className + " bundle, retrying...");
+
+                    resources = queryResources(className);
+                    writeCachedResources(className, resources);
+                    tryCount++;
+                }
             }
         } else {
             try {
