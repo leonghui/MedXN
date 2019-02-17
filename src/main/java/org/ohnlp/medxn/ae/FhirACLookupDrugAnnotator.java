@@ -151,6 +151,8 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         drug.setIngredients(ingredientArray);
 
                         drug.addToIndexes(jcas);
+
+                        getContext().getLogger().log(Level.INFO, "Found ingredient: " + concept.getCoveredText());
                     });
                 })
         );
