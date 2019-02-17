@@ -51,6 +51,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -88,6 +89,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                         attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE)
                         ||
                         attribute.getTag().equals(FhirQueryUtils.MedAttrConstants.FREQUENCY))
+                .sorted(Comparator.comparingInt(MedAttr::getBegin).thenComparingInt(MedAttr::getEnd))
                 .collect(ImmutableList.toImmutableList());
 
         mergeBrandAndGenerics(jcas);
@@ -173,14 +175,39 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     int nextSentenceEnd = sentenceIndex < sortedSentences.size() - 1 ?
                             sortedSentences.get(sentenceIndex + 1).getEnd() : sentence.getEnd();
 
-                    int nextTerminatorEnd = formsRoutesFrequencies.stream()
-                            .filter(medAttr -> medAttr.getBegin() > drug.getEnd())
-                            .map(MedAttr::getEnd)
-                            .max(Integer::compare)
-                            .orElse(Integer.MAX_VALUE);
+                    AtomicInteger firstFormTerminator = new AtomicInteger(0);
+                    AtomicInteger firstRouteTerminator = new AtomicInteger(0);
+                    AtomicInteger firstFrequencyTerminator = new AtomicInteger(0);
 
-                    // choose the smallest value out of the 3 criteria
-                    int windowEnd = Math.min(nextDrugBegin, Math.min(nextSentenceEnd, nextTerminatorEnd));
+                    formsRoutesFrequencies.stream()
+                            .filter(medAttr -> medAttr.getBegin() > drug.getEnd() &&
+                                    medAttr.getEnd() < nextDrugBegin)
+                            .forEach(MedAttr -> {
+                                switch (MedAttr.getTag()) {
+                                    case FhirQueryUtils.MedAttrConstants.FORM:
+                                        firstFormTerminator.compareAndSet(0, MedAttr.getEnd());
+                                        break;
+                                    case FhirQueryUtils.MedAttrConstants.ROUTE:
+                                        firstRouteTerminator.compareAndSet(0, MedAttr.getEnd());
+                                        break;
+                                    case FhirQueryUtils.MedAttrConstants.FREQUENCY:
+                                        firstFrequencyTerminator.compareAndSet(0, MedAttr.getEnd());
+                                        break;
+                                }
+                            });
+
+                    // choose the largest value out of the 3 terminators (each the first of its kind)
+                    int nextTerminatorEnd = Math.max(firstFormTerminator.get(),
+                            Math.max(firstRouteTerminator.get(), firstFrequencyTerminator.get()));
+
+                    int windowEnd;
+
+                    if (nextTerminatorEnd != 0) {
+                        // choose the smallest value out of the 3 criteria
+                        windowEnd = Math.min(nextDrugBegin, Math.min(nextSentenceEnd, nextTerminatorEnd));
+                    } else {
+                        windowEnd = Math.min(nextDrugBegin, nextSentenceEnd);
+                    }
 
                     window.setEnd(windowEnd);
 
