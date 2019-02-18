@@ -92,12 +92,12 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 .sorted(Comparator.comparingInt(MedAttr::getBegin).thenComparingInt(MedAttr::getEnd))
                 .collect(ImmutableList.toImmutableList());
 
-        mergeBrandAndGenerics(jcas);
+        scanDrugs(jcas);
         createLookupWindows(jcas);
         associateAttributesAndIngredients(jcas);
     }
 
-    private void mergeBrandAndGenerics(JCas jcas) {
+    private void scanDrugs(JCas jcas) {
 
         AtomicBoolean drugsModified = new AtomicBoolean(false);
 
@@ -123,8 +123,15 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                         );
 
                         // SCENARIO 1: Brand name is followed by ingredient name
-                        if (nextDrug.getBrand() == null) {
-                            drugsModified.set(compareIngredientsAndMergeDrugs(jcas, nextDrug, drug));
+                        if (nextDrug.getBrand() == null && compareIngredients(nextDrug, drug)) {
+                            mergeDrugs(jcas, nextDrug, drug);
+
+                            getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                                    nextDrug.getCoveredText() +
+                                    " with drug: " + drug.getCoveredText()
+                            );
+
+                            drugsModified.set(true);
                         }
 
                     } else if (drugIndex > 0) {
@@ -136,8 +143,15 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                         );
 
                         // SCENARIO 2: Ingredient name is followed by brand name
-                        if (prevDrug.getBrand() == null) {
-                            drugsModified.set(compareIngredientsAndMergeDrugs(jcas, prevDrug, drug));
+                        if (prevDrug.getBrand() == null && compareIngredients(prevDrug, drug)) {
+                            mergeDrugs(jcas, prevDrug, drug);
+
+                            getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                                    prevDrug.getCoveredText() +
+                                    " with drug: " + drug.getCoveredText()
+                            );
+
+                            drugsModified.set(true);
                         }
                     }
                 }
@@ -250,8 +264,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private boolean compareIngredientsAndMergeDrugs(JCas jcas, Drug sourceDrug, Drug targetDrug) {
-        boolean drugsMerged = false;
+    private boolean compareIngredients(Drug sourceDrug, Drug targetDrug) {
+        boolean canBeMerged = false;
 
         ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
 
@@ -276,18 +290,11 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     .collect(ImmutableList.toImmutableList());
 
             if (candidateIngredients.containsAll(sourceIngredients)) {
-                mergeDrugs(jcas, sourceDrug, targetDrug);
-
-                getContext().getLogger().log(Level.INFO, "Merged drug: " +
-                        sourceDrug.getCoveredText() +
-                        " with drug: " + targetDrug.getCoveredText()
-                );
-
-                drugsMerged = true;
+                canBeMerged = true;
             }
         }
 
-        return drugsMerged;
+        return canBeMerged;
     }
 
     @SuppressWarnings("UnstableApiUsage")
