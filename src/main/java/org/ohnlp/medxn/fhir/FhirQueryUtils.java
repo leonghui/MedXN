@@ -73,7 +73,7 @@ public class FhirQueryUtils {
     @SuppressWarnings("UnstableApiUsage")
     public static ImmutableSet<String> getIngredientsFromMedications(Collection<Medication> allMedications) {
         return allMedications.parallelStream()
-                .flatMap(medication -> medication.getIngredient().parallelStream()
+                .flatMap(medication -> medication.getIngredient().stream()
                         .map(Medication.MedicationIngredientComponent::getItem))
                 .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
