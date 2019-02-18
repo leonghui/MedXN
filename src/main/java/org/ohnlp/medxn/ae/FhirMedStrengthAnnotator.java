@@ -31,9 +31,9 @@ import org.ohnlp.medxn.type.MedAttr;
 
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
 
 public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
     private final Pattern digitsWithComma = Pattern.compile("(?<!\\S)\\d[\\d,.]*");
@@ -47,74 +47,103 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
     @Override
     public void process(JCas jcas) {
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
-                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(annotation -> {
-                    Drug drug = (Drug) annotation;
+                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
+                    Drug drug = (Drug) drugAnnotation;
+
+                    ImmutableList<Ingredient> sortedIngredients = ImmutableList.of();
+
+                    if (drug.getIngredients() != null) {
+                        sortedIngredients = Streams.stream(drug.getIngredients())
+                                .map(Ingredient.class::cast)
+                                .sorted(Comparator.comparingInt(Ingredient::getBegin)
+                                        .thenComparingInt(Ingredient::getEnd))
+                                .collect(ImmutableList.toImmutableList());
+                    }
+
+                    ImmutableList<MedAttr> sortedStrengths = ImmutableList.of();
 
                     if (drug.getAttrs() != null) {
-
-                        ImmutableList<MedAttr> strengths = Streams.stream(drug.getAttrs())
+                        sortedStrengths = Streams.stream(drug.getAttrs())
                                 .map(MedAttr.class::cast)
                                 .filter(attribute ->
-                                        attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH))
+                                        attribute.getTag()
+                                                .contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH))
+                                .sorted(Comparator.comparingInt(MedAttr::getBegin)
+                                        .thenComparingInt(MedAttr::getEnd))
                                 .collect(ImmutableList.toImmutableList());
+                    }
 
-                        IntStream.range(0, strengths.size()).forEach(index -> {
+                    AtomicBoolean assumeIngredientStrengthPairs = new AtomicBoolean(
+                            sortedIngredients.size() == sortedStrengths.size());
 
-                            MedAttr strength = strengths.get(index);
+                    sortedStrengths.forEach(strength -> {
 
-                            Matcher matcher = digitsWithComma.matcher(strength.getCoveredText());
+                        Matcher matcher = digitsWithComma.matcher(strength.getCoveredText());
 
-                            if (matcher.find()) {
+                        if (matcher.find()) {
 
-                                double value = Double.parseDouble(matcher.group(0).replaceAll(",", ""));
-                                String unit = matcher.replaceFirst("").trim();
+                            double value = Double.parseDouble(matcher.group(0).replaceAll(",", ""));
+                            String unit = matcher.replaceFirst("").trim();
 
-                                // if there are no ingredients, create a new array of size 1 to hold the strength
-                                // resize the array if there are additional strengths later
-                                if (drug.getIngredients() == null) {
-                                    FSArray newIngredientArray = new FSArray(jcas, 1);
-                                    Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
+                            // if there are no ingredients, create a new array of size 1 to hold the strength
+                            // resize the array if there are additional strengths later
+                            if (drug.getIngredients() == null) {
+                                FSArray newIngredientArray = new FSArray(jcas, 1);
+                                Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
 
-                                    newIngredient.setAmountValue(value);
-                                    newIngredient.setAmountUnit(unit);
-                                    newIngredient.setItem(""); // avoid null ingredients
+                                newIngredient.setAmountValue(value);
+                                newIngredient.setAmountUnit(unit);
+                                newIngredient.setItem(""); // avoid null ingredients
 
-                                    newIngredientArray.set(0, newIngredient);
+                                newIngredientArray.set(0, newIngredient);
 
-                                    drug.setIngredients(newIngredientArray);
+                                drug.setIngredients(newIngredientArray);
 
-                                } else {
+                            } else {
+                                Optional<Ingredient> matchedIngredient = null;
+
+                                if (!assumeIngredientStrengthPairs.get()) {
                                     // SCENARIO 1: drug strengths are always written after drug names
                                     // look backward and assign strength to the closest ingredient
-                                    Optional<Ingredient> closestIngredient = Streams.stream(drug.getIngredients())
+                                    matchedIngredient = Streams.stream(drug.getIngredients())
                                             .map(Ingredient.class::cast)
                                             .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
                                                     && (ingredient.getAmountUnit() == null ||
                                                     ingredient.getAmountValue() == 0.0))
                                             .max(Comparator.comparingInt(Ingredient::getEnd));
+                                } else {
+                                    // SCENARIO 2: assuming ingredient-strength pairs
+                                    // look backward and assign strength to the furthest ingredient
+                                    matchedIngredient = Streams.stream(drug.getIngredients())
+                                            .map(Ingredient.class::cast)
+                                            .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
+                                                    && (ingredient.getAmountUnit() == null ||
+                                                    ingredient.getAmountValue() == 0.0))
+                                            .min(Comparator.comparingInt(Ingredient::getEnd));
+                                }
 
-                                    if (closestIngredient.isPresent()) {
-                                        closestIngredient.get().setAmountValue(value);
-                                        closestIngredient.get().setAmountUnit(unit);
-                                    } else {
-                                        Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
-                                        newIngredient.setAmountValue(value);
-                                        newIngredient.setAmountUnit(unit);
-                                        newIngredient.setItem(""); // avoid null ingredients
+                                if (matchedIngredient.isPresent()) {
+                                    matchedIngredient.get().setAmountValue(value);
+                                    matchedIngredient.get().setAmountUnit(unit);
+                                } else {
+                                    Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
+                                    newIngredient.setAmountValue(value);
+                                    newIngredient.setAmountUnit(unit);
+                                    newIngredient.setItem(""); // avoid null ingredients
 
-                                        int arraySize = drug.getIngredients().size();
+                                    int arraySize = drug.getIngredients().size();
 
-                                        // resize internal array
-                                        FSArray newArray = new FSArray(jcas, arraySize + 1);
-                                        newArray.copyFromArray(drug.getIngredients().toArray(), 0, 0, arraySize);
-                                        newArray.set(arraySize, newIngredient);
+                                    // resize internal array
+                                    FSArray newArray = new FSArray(jcas, arraySize + 1);
+                                    newArray.copyFromArray(drug.getIngredients().toArray(), 0, 0, arraySize);
+                                    newArray.set(arraySize, newIngredient);
 
-                                        drug.setIngredients(newArray);
-                                    }
+                                    drug.setIngredients(newArray);
                                 }
                             }
-                        });
-                    }
-                }));
+                        }
+                    });
+                })
+        );
     }
 }
