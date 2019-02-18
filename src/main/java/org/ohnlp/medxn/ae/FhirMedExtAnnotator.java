@@ -100,64 +100,104 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private void scanDrugs(JCas jcas) {
 
         AtomicBoolean drugsModified = new AtomicBoolean(false);
+        AtomicBoolean mergeAhead = new AtomicBoolean(false);
+
+        // always generate a new instance of drug list because the index has been updated
+        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                jcas.getAnnotationIndex(Drug.type)
+        );
+
+        AtomicInteger count = new AtomicInteger(0);
+
+        IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
+            Drug drug = sortedDrugs.get(drugIndex);
+
+            if (drug.getBrand() != null) {
+                if (drugIndex + 1 < sortedDrugs.size()) {
+                    Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+
+                    // SCENARIO 1: Brand name is followed by ingredient name
+                    if (nextDrug.getBrand() == null && compareIngredients(nextDrug, drug)) {
+                        count.getAndIncrement();
+                    }
+
+                } else if (drugIndex > 0) {
+                    Drug prevDrug = sortedDrugs.get(drugIndex - 1);
+
+                    // SCENARIO 2: Ingredient name is followed by brand name
+                    if (prevDrug.getBrand() == null && compareIngredients(prevDrug, drug)) {
+                        count.getAndDecrement();
+                    }
+                }
+            }
+        });
+
+        if (count.get() >= 0) {
+            mergeAhead.set(true);
+            getContext().getLogger().log(Level.INFO, "Merge ahead selected");
+        } else {
+            getContext().getLogger().log(Level.INFO, "Merge backward selected");
+        }
 
         do {
             drugsModified.set(false);
             // always generate a new instance of drug list because the index has been updated
-            ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+            ImmutableList<Drug> newSortedDrugs = ImmutableList.sortedCopyOf(
                     Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
                     jcas.getAnnotationIndex(Drug.type)
             );
 
-            IntStream.range(0, sortedDrugs.size()).forEach(drugIndex -> {
-                Drug drug = sortedDrugs.get(drugIndex);
-
+            IntStream.range(0, newSortedDrugs.size()).forEach(drugIndex -> {
+                Drug drug = newSortedDrugs.get(drugIndex);
 
                 if (drug.getBrand() != null) {
-                    if (drugIndex + 1 < sortedDrugs.size()) {
-                        Drug nextDrug = sortedDrugs.get(drugIndex + 1);
+                    if (mergeAhead.get()) {
+                        if (drugIndex + 1 < newSortedDrugs.size()) {
+                            Drug nextDrug = newSortedDrugs.get(drugIndex + 1);
 
-                        getContext().getLogger().log(Level.INFO, "Looking ahead: " +
-                                nextDrug.getCoveredText() +
-                                " with drug: " + drug.getCoveredText()
-                        );
-
-                        // SCENARIO 1: Brand name is followed by ingredient name
-                        if (nextDrug.getBrand() == null && compareIngredients(nextDrug, drug)) {
-                            mergeDrugs(jcas, nextDrug, drug);
-
-                            getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                            getContext().getLogger().log(Level.INFO, "Looking ahead: " +
                                     nextDrug.getCoveredText() +
                                     " with drug: " + drug.getCoveredText()
                             );
 
-                            drugsModified.set(true);
+                            // SCENARIO 1: Brand name is followed by ingredient name
+                            if (nextDrug.getBrand() == null && compareIngredients(nextDrug, drug)) {
+                                mergeDrugs(jcas, nextDrug, drug);
+
+                                getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                                        nextDrug.getCoveredText() +
+                                        " with drug: " + drug.getCoveredText()
+                                );
+
+                                drugsModified.set(true);
+                            }
                         }
+                    } else {
+                        if (drugIndex > 0) {
+                            Drug prevDrug = newSortedDrugs.get(drugIndex - 1);
 
-                    } else if (drugIndex > 0) {
-                        Drug prevDrug = sortedDrugs.get(drugIndex - 1);
-
-                        getContext().getLogger().log(Level.INFO, "Looking backward: " +
-                                prevDrug.getCoveredText() +
-                                " with drug: " + drug.getCoveredText()
-                        );
-
-                        // SCENARIO 2: Ingredient name is followed by brand name
-                        if (prevDrug.getBrand() == null && compareIngredients(prevDrug, drug)) {
-                            mergeDrugs(jcas, prevDrug, drug);
-
-                            getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                            getContext().getLogger().log(Level.INFO, "Looking backward: " +
                                     prevDrug.getCoveredText() +
                                     " with drug: " + drug.getCoveredText()
                             );
 
-                            drugsModified.set(true);
+                            // SCENARIO 2: Ingredient name is followed by brand name
+                            if (prevDrug.getBrand() == null && compareIngredients(prevDrug, drug)) {
+                                mergeDrugs(jcas, prevDrug, drug);
+
+                                getContext().getLogger().log(Level.INFO, "Merged drug: " +
+                                        prevDrug.getCoveredText() +
+                                        " with drug: " + drug.getCoveredText()
+                                );
+
+                                drugsModified.set(true);
+                            }
                         }
                     }
                 }
             });
         } while (drugsModified.get());
-
     }
 
     private void createLookupWindows(JCas jcas) {
