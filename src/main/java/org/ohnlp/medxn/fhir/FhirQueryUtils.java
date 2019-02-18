@@ -16,6 +16,8 @@
 
 package org.ohnlp.medxn.fhir;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.ahocorasick.trie.Trie;
@@ -25,10 +27,7 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Medication;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FhirQueryUtils {
@@ -45,43 +44,48 @@ public class FhirQueryUtils {
                 .orElse(null);
     }
 
-    public static Set<String> getAllRxCuisFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static ImmutableSet<String> getAllRxCuisFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
         return getKeyStreamFromKeywordMap(keywordMap, keyword)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
-    public static Set<Medication> getMedicationsFromRxCui(Collection<Medication> allMedications, Collection<String> rxCuis) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static ImmutableSet<Medication> getMedicationsFromRxCui(Collection<Medication> allMedications, Collection<String> rxCuis) {
         return allMedications.parallelStream()
                 .filter(medication -> {
                     Coding medicationCoding = medication.getCode().getCodingFirstRep();
                     return rxCuis.contains(medicationCoding.getCode());
                 })
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
-    public static Set<String> getIngredientsFromMedication(Medication medication) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static ImmutableSet<String> getIngredientsFromMedication(Medication medication) {
         return medication.getIngredient().parallelStream()
                 .map(Medication.MedicationIngredientComponent::getItem)
                 .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
-    public static Set<String> getIngredientsFromMedications(Collection<Medication> allMedications) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static ImmutableSet<String> getIngredientsFromMedications(Collection<Medication> allMedications) {
         return allMedications.parallelStream()
                 .flatMap(medication -> medication.getIngredient().parallelStream()
                         .map(Medication.MedicationIngredientComponent::getItem))
                 .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
     }
 
-    public static List<String> getCoveredTextFromAnnotations(Collection<? extends Annotation> annotations) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static ImmutableList<String> getCoveredTextFromAnnotations(Collection<? extends Annotation> annotations) {
         return annotations.stream()
                 .map(Annotation::getCoveredText)
-                .collect(Collectors.toList());
+                .collect(ImmutableList.toImmutableList());
     }
 
     public static class MedAttrConstants {
