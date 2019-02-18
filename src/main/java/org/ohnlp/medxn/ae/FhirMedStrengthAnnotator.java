@@ -23,6 +23,7 @@ import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.apache.uima.util.Level;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
     private final Pattern digitsWithComma = Pattern.compile("(?<!\\S)\\d[\\d,.]*");
@@ -74,7 +76,12 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                     }
 
                     AtomicBoolean assumeIngredientStrengthPairs = new AtomicBoolean(
-                            sortedIngredients.size() == sortedStrengths.size());
+                            !sortedIngredients.isEmpty() && sortedIngredients.size() == sortedStrengths.size());
+
+                    if (assumeIngredientStrengthPairs.get()) {
+                        getContext().getLogger().log(Level.INFO, "Assuming ingredient-strength pairs for:"
+                                + drug.getCoveredText());
+                    }
 
                     sortedStrengths.forEach(strength -> {
 
@@ -99,32 +106,41 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
 
                                 drug.setIngredients(newIngredientArray);
 
+                                getContext().getLogger().log(Level.INFO, "Associating first strength: " +
+                                        value + " : " + unit +
+                                        " with drug: " + drug.getCoveredText()
+                                );
+
                             } else {
-                                Optional<Ingredient> matchedIngredient = null;
+                                Optional<Ingredient> matchedIngredient;
+
+                                Stream<Ingredient> candidateIngredients = Streams.stream(drug.getIngredients())
+                                        .map(Ingredient.class::cast)
+                                        .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
+                                                && (ingredient.getAmountUnit() == null ||
+                                                ingredient.getAmountValue() == 0.0));
 
                                 if (!assumeIngredientStrengthPairs.get()) {
                                     // SCENARIO 1: drug strengths are always written after drug names
                                     // look backward and assign strength to the closest ingredient
-                                    matchedIngredient = Streams.stream(drug.getIngredients())
-                                            .map(Ingredient.class::cast)
-                                            .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
-                                                    && (ingredient.getAmountUnit() == null ||
-                                                    ingredient.getAmountValue() == 0.0))
+                                    matchedIngredient = candidateIngredients
                                             .max(Comparator.comparingInt(Ingredient::getEnd));
                                 } else {
                                     // SCENARIO 2: assuming ingredient-strength pairs
                                     // look backward and assign strength to the furthest ingredient
-                                    matchedIngredient = Streams.stream(drug.getIngredients())
-                                            .map(Ingredient.class::cast)
-                                            .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
-                                                    && (ingredient.getAmountUnit() == null ||
-                                                    ingredient.getAmountValue() == 0.0))
+                                    matchedIngredient = candidateIngredients
                                             .min(Comparator.comparingInt(Ingredient::getEnd));
                                 }
 
                                 if (matchedIngredient.isPresent()) {
                                     matchedIngredient.get().setAmountValue(value);
                                     matchedIngredient.get().setAmountUnit(unit);
+
+                                    getContext().getLogger().log(Level.INFO, "Associating matched strength: " +
+                                            value + " : " + unit +
+                                            " with ingredient: " + matchedIngredient.get().getCoveredText() +
+                                            " for drug: " + drug.getCoveredText()
+                                    );
                                 } else {
                                     Ingredient newIngredient = new Ingredient(jcas, drug.getBegin(), drug.getEnd());
                                     newIngredient.setAmountValue(value);
@@ -139,6 +155,11 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                                     newArray.set(arraySize, newIngredient);
 
                                     drug.setIngredients(newArray);
+
+                                    getContext().getLogger().log(Level.INFO, "Associating additional strength: " +
+                                            value + " : " + unit +
+                                            " with drug: " + drug.getCoveredText()
+                                    );
                                 }
                             }
                         }
