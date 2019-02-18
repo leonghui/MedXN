@@ -62,7 +62,7 @@ public class FhirQueryUtils {
     public static Set<String> getIngredientsFromMedication(Medication medication) {
         return medication.getIngredient().parallelStream()
                 .map(Medication.MedicationIngredientComponent::getItem)
-                .map(type -> (CodeableConcept) type)
+                .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
                 .collect(Collectors.toSet());
@@ -72,7 +72,7 @@ public class FhirQueryUtils {
         return allMedications.parallelStream()
                 .flatMap(medication -> medication.getIngredient().parallelStream()
                         .map(Medication.MedicationIngredientComponent::getItem))
-                .map(type -> (CodeableConcept) type)
+                .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
                 .collect(Collectors.toSet());
