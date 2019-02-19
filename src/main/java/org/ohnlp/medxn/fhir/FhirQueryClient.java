@@ -177,8 +177,12 @@ public class FhirQueryClient {
         return (ImmutableList<Substance>) getAllResources("Substance");
     }
 
-    public String getFhirServerUrl() {
+    public String getServerUrl() {
         return FHIR_SERVER_URL;
+    }
+
+    public FhirContext getContext() {
+        return context;
     }
 
     private Path getCachedFilePath(String className) {

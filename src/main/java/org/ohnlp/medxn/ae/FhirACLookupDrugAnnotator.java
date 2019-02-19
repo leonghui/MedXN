@@ -79,7 +79,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         queryClient
                 .getAllMedications()
                 .forEach(medication -> medication
-                        .getExtensionsByUrl(queryClient.getFhirServerUrl() + "/StructureDefinition/brand")
+                        .getExtensionsByUrl(queryClient.getServerUrl() + "/StructureDefinition/brand")
                         .stream()
                         .findFirst()
                         .ifPresent(brandExtension -> {
