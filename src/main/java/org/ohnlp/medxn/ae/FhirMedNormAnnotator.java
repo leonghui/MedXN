@@ -98,7 +98,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableList.toImmutableList());
 
         // CRITERION 1: Consider all medications with the same ingredients
-        ImmutableSet<Medication> fhirMedicationsIng = allMedications.parallelStream()
+
+        return allMedications.parallelStream()
                 .filter(medication -> {
                     ImmutableList<String> fhirIngredients = FhirQueryUtils.getIngredientsFromMedication(medication);
 
@@ -107,8 +108,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                             fhirIngredients.containsAll(annotationIngredientIds);
                 })
                 .collect(ImmutableSet.toImmutableSet());
-
-        return fhirMedicationsIng;
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -176,10 +175,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         // prefer concepts with dose form
-        ImmutableSet<Medication> results =
-                !fhirMedicationsDoseForm.isEmpty() ? fhirMedicationsDoseForm : fhirMedicationsRoute;
 
-        return results;
+        return !fhirMedicationsDoseForm.isEmpty() ? fhirMedicationsDoseForm : fhirMedicationsRoute;
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -222,10 +219,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         // prefer concepts with ingredient-strength pairs
-        ImmutableSet<Medication> results =
-                !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength : fhirMedicationsAnonStrength;
 
-        return results;
+        return !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength : fhirMedicationsAnonStrength;
     }
 
     // use Adapter pattern to simplify comparisons
@@ -236,11 +231,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             this.component = component;
         }
 
-        public String getItemCode() {
+        String getItemCode() {
             return component.getItemCodeableConcept().getCodingFirstRep().getCode();
         }
 
-        public BigDecimal getStrengthNumeratorValue() {
+        BigDecimal getStrengthNumeratorValue() {
             return component.getAmount().getNumerator().getValue();
         }
 
@@ -258,11 +253,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             this.ingredient = ingredient;
         }
 
-        public String getItemCode() {
+        String getItemCode() {
             return ingredient.getItem();
         }
 
-        public BigDecimal getStrengthNumeratorValue() {
+        BigDecimal getStrengthNumeratorValue() {
             return BigDecimal.valueOf(ingredient.getAmountValue());
         }
 
