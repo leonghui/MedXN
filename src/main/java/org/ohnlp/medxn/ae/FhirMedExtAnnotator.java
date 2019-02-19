@@ -309,7 +309,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
         Set<Medication> targetMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
 
-        ArrayList<String> candidateIngredients = new ArrayList<>(FhirQueryUtils.getIngredientsFromMedications(targetMedications));
+        ArrayList<String> candidateIngredients = new ArrayList<>(
+                FhirQueryUtils.getIngredientsFromMedications(targetMedications));
 
         // don't add ingredients that are already found in the drug
         if (targetDrug.getIngredients() != null) {
