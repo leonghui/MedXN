@@ -117,28 +117,30 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
                 if (!routes.isEmpty()) {
                     routes.forEach(routeAttr -> {
-                        String route = routeAttr.getCoveredText();
-                        if (route.equalsIgnoreCase("mouth") ||
-                                route.equalsIgnoreCase("oral") ||
-                                route.equalsIgnoreCase("orally") ||
-                                route.equalsIgnoreCase("po") ||
-                                route.equalsIgnoreCase("p.o.")) {
-                            oralContextFlag.compareAndSet(false, true);
-                        }
-                        if (route.equalsIgnoreCase("vaginally") ||
-                                route.equalsIgnoreCase("pv")) {
-                            vaginalContextFlag.compareAndSet(false, true);
-                        }
-                        if (route.equalsIgnoreCase("rectally") ||
-                                route.equalsIgnoreCase("anally") ||
-                                route.equalsIgnoreCase("pr") ||
-                                route.equalsIgnoreCase("p.r.")) {
-                            rectalContextFlag.compareAndSet(false, true);
-                        }
-                        if (route.equalsIgnoreCase("skin") ||
-                                route.equalsIgnoreCase("topical") ||
-                                route.equalsIgnoreCase("topically")) {
-                            topicalContextFlag.compareAndSet(false, true);
+                        // route normalization
+                        switch (routeAttr.getCoveredText().toLowerCase()) {
+                            case "mouth":
+                            case "oral":
+                            case "orally":
+                            case "po":
+                            case "p.o.":
+                                oralContextFlag.compareAndSet(false, true);
+                                break;
+                            case "vaginally":
+                            case "pv":
+                                vaginalContextFlag.compareAndSet(false, true);
+                                break;
+                            case "rectally":
+                            case "anally":
+                            case "pr":
+                            case "p.r.":
+                                rectalContextFlag.compareAndSet(false, true);
+                                break;
+                            case "skin":
+                            case "topical":
+                            case "topically":
+                                topicalContextFlag.compareAndSet(false, true);
+                                break;
                         }
                     });
                 }

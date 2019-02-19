@@ -138,31 +138,35 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         ImmutableSet<Medication> fhirMedicationsRoute = routes.stream()
                 .flatMap(route -> medications.stream()
                         .filter(medication -> {
-                            String routeText = route.getCoveredText();
+                            String routeNormText;
 
                             // route normalization adapted from FhirACLookupDrugFormAnnotator
-                            String routeNormText = routeText;
-                            if (routeText.equalsIgnoreCase("mouth") ||
-                                    routeText.equalsIgnoreCase("oral") ||
-                                    routeText.equalsIgnoreCase("orally") ||
-                                    routeText.equalsIgnoreCase("po") ||
-                                    routeText.equalsIgnoreCase("p.o.")) {
-                                routeNormText = "oral";
-                            }
-                            if (routeText.equalsIgnoreCase("vaginally") ||
-                                    routeText.equalsIgnoreCase("pv")) {
-                                routeNormText = "vaginal";
-                            }
-                            if (routeText.equalsIgnoreCase("rectally") ||
-                                    routeText.equalsIgnoreCase("anally") ||
-                                    routeText.equalsIgnoreCase("pr") ||
-                                    routeText.equalsIgnoreCase("p.r.")) {
-                                routeNormText = "rectal";
-                            }
-                            if (routeText.equalsIgnoreCase("skin") ||
-                                    routeText.equalsIgnoreCase("topical") ||
-                                    routeText.equalsIgnoreCase("topically")) {
-                                routeNormText = "topical";
+                            switch (route.getCoveredText().toLowerCase()) {
+                                case "mouth":
+                                case "oral":
+                                case "orally":
+                                case "po":
+                                case "p.o.":
+                                    routeNormText = "oral";
+                                    break;
+                                case "vaginally":
+                                case "pv":
+                                    routeNormText = "vaginal";
+                                    break;
+                                case "rectally":
+                                case "anally":
+                                case "pr":
+                                case "p.r.":
+                                    routeNormText = "rectal";
+                                    break;
+                                case "skin":
+                                case "topical":
+                                case "topically":
+                                    routeNormText = "topical";
+                                    break;
+                                default:
+                                    routeNormText = route.getCoveredText().toLowerCase();
+                                    break;
                             }
 
                             return medication
@@ -171,7 +175,9 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                     .getDisplay()
                                     .toLowerCase()
                                     .contains(routeNormText);
-                        }))
+                        })
+                )
+
                 .collect(ImmutableSet.toImmutableSet());
 
         // prefer concepts with dose form
