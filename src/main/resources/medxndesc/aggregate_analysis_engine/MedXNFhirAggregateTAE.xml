@@ -61,6 +61,9 @@
         <delegateAnalysisEngine key="FhirMedStrengthAE">
             <import name="org.ohnlp.medxn.aes.FhirMedStrengthAE"/>
         </delegateAnalysisEngine>
+        <delegateAnalysisEngine key="FhirMedNormAE">
+            <import name="org.ohnlp.medxn.aes.FhirMedNormAE"/>
+        </delegateAnalysisEngine>
     </delegateAnalysisEngineSpecifiers>
     <analysisEngineMetaData>
         <name>MedXNAggregateTAE</name>
@@ -81,6 +84,7 @@
                     <parameter>MedAttrAE/FHIR_SERVER_URL</parameter>
                     <parameter>FhirACLookupDrugFormAE/FHIR_SERVER_URL</parameter>
                     <parameter>FhirMedExtAE/FHIR_SERVER_URL</parameter>
+                    <parameter>FhirMedNormAE/FHIR_SERVER_URL</parameter>
                 </overrides>
             </configurationParameter>
             <configurationParameter>
@@ -94,6 +98,7 @@
                     <parameter>MedAttrAE/TIMEOUT_SEC</parameter>
                     <parameter>FhirACLookupDrugFormAE/TIMEOUT_SEC</parameter>
                     <parameter>FhirMedExtAE/TIMEOUT_SEC</parameter>
+                    <parameter>FhirMedNormAE/TIMEOUT_SEC</parameter>
                 </overrides>
             </configurationParameter>
         </configurationParameters>
@@ -124,6 +129,7 @@
                 <node>FhirMedExtAE</node>
                 <node>FhirACLookupDrugFormAE</node>
                 <node>FhirMedStrengthAE</node>
+                <node>FhirMedNormAE</node>
             </fixedFlow>
         </flowConstraints>
         <typePriorities>
