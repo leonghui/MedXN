@@ -32,10 +32,8 @@ import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private List<Medication> allMedications;
@@ -58,20 +56,33 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
         drugs.forEach(drug -> {
-            Set<Medication> candidateMedications = new LinkedHashSet<>();
+            ImmutableSet<Medication> candidateMedications;
+
             if (drug.getBrand() != null) {
                 ImmutableSet<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
 
-                candidateMedications.addAll(FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands));
+                candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
             } else {
-                candidateMedications.addAll(findGenericMedications(jcas, drug));
+                candidateMedications = findGenericMedications(jcas, drug);
             }
 
-            if (candidateMedications.size() == 1) {
-                Medication medication = candidateMedications.iterator().next();
+            ImmutableSet<Medication> results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
+
+            // TODO introduce recursion later
+            if (results.size() == 1) {
+                Medication medication = results.iterator().next();
 
                 drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
                 drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+            } else {
+                results = filterByStrength(jcas, drug, results);
+
+                if (results.size() == 1) {
+                    Medication medication = results.iterator().next();
+
+                    drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                    drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                }
             }
         });
     }
@@ -79,16 +90,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     @SuppressWarnings("UnstableApiUsage")
     private ImmutableSet<Medication> findGenericMedications(JCas jcas, Drug drug) {
 
-        // all generic Drugs must have at least one Ingredient
-        assert drug.getIngredients() != null;
+        FSArray ingredientArray = Optional.ofNullable(drug.getIngredients()).orElse(new FSArray(jcas, 0));
 
-        ImmutableList<IngredientCommons> annotationIngredients = Streams.stream(drug.getIngredients())
+        ImmutableList<String> annotationIngredientIds = Streams.stream(ingredientArray)
                 .map(Ingredient.class::cast)
-                .map(IngredientCommons::new)
-                .collect(ImmutableList.toImmutableList());
-
-        ImmutableList<String> annotationIngredientIds = annotationIngredients.stream()
-                .map(IngredientCommons::getItem)
+                .map(Ingredient::getItem)
                 .collect(ImmutableList.toImmutableList());
 
         // CRITERION 1: Consider all medications with the same ingredients
@@ -102,10 +108,16 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 })
                 .collect(ImmutableSet.toImmutableSet());
 
+        return fhirMedicationsIng;
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private ImmutableSet<Medication> filterByDoseFormOrRoute(JCas jcas, Drug drug, ImmutableSet<Medication> medications) {
+
         // CRITERION 2a: Include only medications with the same dose form
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
-        ImmutableSet<Medication> fhirMedicationsDoseForm = fhirMedicationsIng.stream()
+        ImmutableSet<Medication> fhirMedicationsDoseForm = medications.stream()
                 .filter(medication ->
                         doseForm.contentEquals(medication
                                 .getForm()
@@ -116,14 +128,16 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         // CRITERION 2b: Include only medications with the same route, if dose form is not found or unavailable
+        FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
+
         ImmutableList<MedAttr> routes =
-                Streams.stream(Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0)))
+                Streams.stream(attributeArray)
                         .map(MedAttr.class::cast)
                         .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE))
                         .collect(ImmutableList.toImmutableList());
 
         ImmutableSet<Medication> fhirMedicationsRoute = routes.stream()
-                .flatMap(route -> fhirMedicationsIng.stream()
+                .flatMap(route -> medications.stream()
                         .filter(medication -> {
                             String routeText = route.getCoveredText();
 
@@ -161,12 +175,25 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         }))
                 .collect(ImmutableSet.toImmutableSet());
 
-        // prefer concepts with dose form for interim results
-        ImmutableSet<Medication> fhirMedicationsDoseFormOrRoute =
+        // prefer concepts with dose form
+        ImmutableSet<Medication> results =
                 !fhirMedicationsDoseForm.isEmpty() ? fhirMedicationsDoseForm : fhirMedicationsRoute;
 
-        // CRITERION 3: Include only medications with the same strength
-        ImmutableSet<Medication> fhirMedicationsStrength = fhirMedicationsDoseFormOrRoute.stream()
+        return results;
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private ImmutableSet<Medication> filterByStrength(JCas jcas, Drug drug, ImmutableSet<Medication> medications) {
+
+        FSArray ingredientArray = Optional.ofNullable(drug.getIngredients()).orElse(new FSArray(jcas, 0));
+
+        ImmutableList<IngredientCommons> annotationIngredients = Streams.stream(ingredientArray)
+                .map(Ingredient.class::cast)
+                .map(IngredientCommons::new)
+                .collect(ImmutableList.toImmutableList());
+
+        // CRITERION 3a: Include only medications with the same ingredient-strength pairs
+        ImmutableSet<Medication> fhirMedicationsStrength = medications.stream()
                 .filter(medication ->
                         medication.getIngredient().stream()
                                 .map(Medication.MedicationIngredientComponent.class::cast)
@@ -180,7 +207,25 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
-        return fhirMedicationsStrength;
+        // CRITERION 3b: Include only medications with the same strengths, if ingredient is not found
+        ImmutableSet<Medication> fhirMedicationsAnonStrength = medications.stream()
+                .filter(medication ->
+                        medication.getIngredient().stream()
+                                .map(Medication.MedicationIngredientComponent.class::cast)
+                                .map(MedicationIngredientComponentCommons::new)
+                                .allMatch(component ->
+                                        annotationIngredients.stream().allMatch(ingredient ->
+                                                component.getStrengthNumeratorValue().equals(
+                                                        ingredient.getStrengthNumeratorValue()))
+                                )
+                )
+                .collect(ImmutableSet.toImmutableSet());
+
+        // prefer concepts with ingredient-strength pairs
+        ImmutableSet<Medication> results =
+                !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength : fhirMedicationsAnonStrength;
+
+        return results;
     }
 
     // use Adapter pattern to simplify comparisons
