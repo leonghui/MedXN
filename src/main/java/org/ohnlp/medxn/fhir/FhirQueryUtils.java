@@ -61,24 +61,24 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableSet<String> getIngredientsFromMedication(Medication medication) {
+    public static ImmutableList<String> getIngredientsFromMedication(Medication medication) {
         return medication.getIngredient().parallelStream()
                 .map(Medication.MedicationIngredientComponent::getItem)
                 .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
-                .collect(ImmutableSet.toImmutableSet());
+                .collect(ImmutableList.toImmutableList());
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableSet<String> getIngredientsFromMedications(Collection<Medication> allMedications) {
+    public static ImmutableList<String> getIngredientsFromMedications(Collection<Medication> allMedications) {
         return allMedications.parallelStream()
                 .flatMap(medication -> medication.getIngredient().stream()
                         .map(Medication.MedicationIngredientComponent::getItem))
                 .map(CodeableConcept.class::cast)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
-                .collect(ImmutableSet.toImmutableSet());
+                .collect(ImmutableList.toImmutableList());
     }
 
     @SuppressWarnings("UnstableApiUsage")
