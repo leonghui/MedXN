@@ -76,7 +76,8 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                     }
 
                     AtomicBoolean assumeIngredientStrengthPairs = new AtomicBoolean(
-                            !sortedIngredients.isEmpty() && sortedIngredients.size() == sortedStrengths.size());
+                            !sortedIngredients.isEmpty() &&
+                                    sortedIngredients.size() == sortedStrengths.size());
 
                     if (assumeIngredientStrengthPairs.get()) {
                         getContext().getLogger().log(Level.INFO, "Assuming ingredient-strength pairs for:"
@@ -116,9 +117,9 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
 
                                 Stream<Ingredient> candidateIngredients = Streams.stream(drug.getIngredients())
                                         .map(Ingredient.class::cast)
-                                        .filter(ingredient -> ingredient.getEnd() < strength.getBegin()
-                                                && (ingredient.getAmountUnit() == null ||
-                                                ingredient.getAmountValue() == 0.0));
+                                        .filter(ingredient -> ingredient.getEnd() < strength.getBegin())
+                                        .filter(ingredient -> ingredient.getAmountUnit() == null
+                                                || ingredient.getAmountValue() == 0.0);
 
                                 if (!assumeIngredientStrengthPairs.get()) {
                                     // SCENARIO 1: drug strengths are always written after drug names
@@ -151,7 +152,8 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
 
                                     // resize internal array
                                     FSArray newArray = new FSArray(jcas, arraySize + 1);
-                                    newArray.copyFromArray(drug.getIngredients().toArray(), 0, 0, arraySize);
+                                    newArray.copyFromArray(
+                                            drug.getIngredients().toArray(), 0, 0, arraySize);
                                     newArray.set(arraySize, newIngredient);
 
                                     drug.setIngredients(newArray);

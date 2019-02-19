@@ -232,8 +232,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                     AtomicInteger firstFrequencyTerminator = new AtomicInteger(0);
 
                     formsRoutesFrequencies.stream()
-                            .filter(medAttr -> medAttr.getBegin() > drug.getEnd() &&
-                                    medAttr.getEnd() < nextDrugBegin)
+                            .filter(medAttr -> medAttr.getBegin() > drug.getEnd())
+                            .filter(medAttr -> medAttr.getEnd() < nextDrugBegin)
                             .forEach(MedAttr -> {
                                 switch (MedAttr.getTag()) {
                                     case FhirQueryUtils.MedAttrConstants.FORM:
@@ -278,9 +278,8 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
                     // attributes are assumed not to be contained in drug names
                     List<MedAttr> filteredAttributes = attributes.stream()
-                            .filter(attribute ->
-                                    attribute.getBegin() >= window.getBegin() &&
-                                            attribute.getEnd() <= window.getEnd())
+                            .filter(attribute -> attribute.getBegin() >= window.getBegin())
+                            .filter(attribute -> attribute.getEnd() <= window.getEnd())
                             .collect(Collectors.toList());
 
                     if (filteredAttributes.size() > 0) {
