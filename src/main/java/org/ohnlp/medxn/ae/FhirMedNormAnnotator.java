@@ -19,6 +19,7 @@ package org.ohnlp.medxn.ae;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
+import info.debatty.java.stringsimilarity.Levenshtein;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
@@ -32,6 +33,7 @@ import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,6 +84,22 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
                     drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
                     drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                } else {
+                    Comparator<Medication> byLevenshteinDistance = (m1, m2) -> {
+                        Levenshtein levenshtein = new Levenshtein();
+
+                        return Double.compare(
+                                levenshtein.distance(m1.getCode().getCodingFirstRep().getDisplay(), drug.getCoveredText()),
+                                levenshtein.distance(m2.getCode().getCodingFirstRep().getDisplay(), drug.getCoveredText())
+                        );
+                    };
+
+                    results.stream()
+                            .min(byLevenshteinDistance)
+                            .ifPresent(finalMed -> {
+                                drug.setNormRxName2(finalMed.getCode().getCodingFirstRep().getDisplay());
+                                drug.setNormRxCui2(finalMed.getCode().getCodingFirstRep().getCode());
+                            });
                 }
             }
         });
@@ -100,11 +118,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         // CRITERION 1: Consider all medications with the same ingredients
 
         return allMedications.parallelStream()
+                .filter(medication -> !medication.getIsBrand())
                 .filter(medication -> {
                     ImmutableList<String> fhirIngredients = FhirQueryUtils.getIngredientsFromMedication(medication);
 
-                    return !medication.getIsBrand() &&
-                            fhirIngredients.size() == annotationIngredientIds.size() &&
+                    return fhirIngredients.size() == annotationIngredientIds.size() &&
                             fhirIngredients.containsAll(annotationIngredientIds);
                 })
                 .collect(ImmutableSet.toImmutableSet());

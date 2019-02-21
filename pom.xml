@@ -71,6 +71,12 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>info.debatty</groupId>
+            <artifactId>java-string-similarity</artifactId>
+            <version>1.1.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.ohnlp.ir</groupId>
             <artifactId>MedTagger</artifactId>
             <version>1.0.1</version>
