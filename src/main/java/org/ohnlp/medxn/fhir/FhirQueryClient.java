@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 public class FhirQueryClient {
-    private final FhirContext context = FhirContext.forDstu3();
+    private final FhirContext context = FhirContext.forR4();
     private final IGenericClient client;
     private final String FHIR_SERVER_URL;
     private final String cacheFolder = System.getProperty("user.dir") + File.separator + "tmp";
