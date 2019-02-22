@@ -33,9 +33,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
-import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Substance;
 import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
@@ -64,18 +62,14 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient
                 .getAllSubstances()
-                .stream()
-                .map(Substance::getCode)
-                .map(CodeableConcept::getCodingFirstRep)
-                .forEach(coding -> ingredients.keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase()));
-
-        queryClient
-                .getAllSubstances()
                 .forEach(substance -> substance
                         .getExtensionsByUrl(queryClient.getServerUrl() + "/StructureDefinition/synonym")
                         .stream()
                         .forEach(synonymExtension -> {
                             Coding coding = substance.getCode().getCodingFirstRep();
+
+                            ingredients.keywordMap.put(coding.getCode(),
+                                    coding.getDisplay());
 
                             ingredients.keywordMap.put(coding.getCode(),
                                     synonymExtension.getValue().toString()
