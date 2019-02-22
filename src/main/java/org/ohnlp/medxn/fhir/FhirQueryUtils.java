@@ -16,9 +16,9 @@
 
 package org.ohnlp.medxn.fhir;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.jcas.tcas.Annotation;
@@ -100,7 +100,7 @@ public class FhirQueryUtils {
     public static class LookupTable {
         // Data structure to store keywords
         // rxCui, keyword
-        public final SetMultimap<String, String> keywordMap = LinkedHashMultimap.create();
+        public final SetMultimap<String, String> keywordMap = HashMultimap.create();
 
         // Data structure to store the trie
         public Trie trie;
