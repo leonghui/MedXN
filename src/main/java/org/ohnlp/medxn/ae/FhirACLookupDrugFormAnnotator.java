@@ -16,8 +16,8 @@
 
 package org.ohnlp.medxn.ae;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Streams;
 import org.ahocorasick.trie.Emit;
@@ -67,7 +67,7 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
             doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
         });
 
-        SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
+        SetMultimap<String, String> additionalKeywords = HashMultimap.create();
 
         // enrich keyword map with plural terms
         doseForms.keywordMap.entries().forEach(entry -> {

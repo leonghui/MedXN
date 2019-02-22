@@ -25,7 +25,7 @@
  ******************************************************************************/
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
@@ -99,7 +99,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 				"Metered Dose"
 		);
 
-		SetMultimap<String, String> additionalKeywords = LinkedHashMultimap.create();
+		SetMultimap<String, String> additionalKeywords = HashMultimap.create();
 
 		doseForms.keywordMap.entries().forEach(
 				entry -> commonOmittedWords.forEach(word -> {
