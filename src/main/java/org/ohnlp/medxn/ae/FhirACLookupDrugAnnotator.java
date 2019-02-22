@@ -64,7 +64,6 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 .getAllSubstances()
                 .forEach(substance -> substance
                         .getExtensionsByUrl(queryClient.getServerUrl() + "/StructureDefinition/synonym")
-                        .stream()
                         .forEach(synonymExtension -> {
                             Coding coding = substance.getCode().getCodingFirstRep();
 
@@ -84,6 +83,11 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 .onlyWholeWords()
                 .addKeywords(ingredients.keywordMap.values())
                 .build();
+
+        getContext().getLogger().log(Level.INFO, "Built ingredient trie using "
+                + ingredients.getKeywordSize() + " keywords against "
+                + ingredients.getConceptSize() + " concepts."
+        );
 
         queryClient
                 .getAllMedications()
@@ -108,6 +112,10 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 .addKeywords(brands.keywordMap.values())
                 .build();
 
+        getContext().getLogger().log(Level.INFO, "Built brand trie using "
+                + brands.getKeywordSize() + " keywords against "
+                + brands.getConceptSize() + " concepts."
+        );
     }
 
     @Override

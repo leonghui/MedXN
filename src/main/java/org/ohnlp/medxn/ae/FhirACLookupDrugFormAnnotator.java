@@ -26,6 +26,7 @@ import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.apache.uima.util.Level;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -90,6 +91,11 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                 .onlyWholeWords()
                 .addKeywords(doseForms.keywordMap.values())
                 .build();
+
+        getContext().getLogger().log(Level.INFO, "Built dose form trie using "
+                + doseForms.getKeywordSize() + " keywords against "
+                + doseForms.getConceptSize() + " concepts."
+        );
     }
 
     @SuppressWarnings("UnstableApiUsage")
