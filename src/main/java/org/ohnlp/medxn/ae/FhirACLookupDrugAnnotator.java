@@ -69,6 +69,21 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 .map(CodeableConcept::getCodingFirstRep)
                 .forEach(coding -> ingredients.keywordMap.put(coding.getCode(), coding.getDisplay().toLowerCase()));
 
+        queryClient
+                .getAllSubstances()
+                .forEach(substance -> substance
+                        .getExtensionsByUrl(queryClient.getServerUrl() + "/StructureDefinition/synonym")
+                        .stream()
+                        .forEach(synonymExtension -> {
+                            Coding coding = substance.getCode().getCodingFirstRep();
+
+                            ingredients.keywordMap.put(coding.getCode(),
+                                    synonymExtension.getValue().toString()
+                                            .replaceAll(punctuationOrWhitespace.toString(), " ")
+                            );
+                        })
+                );
+
         ingredients.trie = Trie.builder()
                 .ignoreCase()
                 .ignoreOverlaps()
@@ -89,7 +104,8 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                                     brandExtension.getValue().toString()
                                             .replaceAll(punctuationOrWhitespace.toString(), " ")
                             );
-                        }));
+                        })
+                );
 
         brands.trie = Trie.builder()
                 .ignoreCase()
