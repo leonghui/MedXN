@@ -170,6 +170,7 @@ public class FhirQueryClient {
         return (ImmutableList<Medication>) getAllResources("Medication");
     }
 
+    @SuppressWarnings("unchecked")
     public ImmutableList<MedicationKnowledge> getAllMedicationKnowledge() {
         return (ImmutableList<MedicationKnowledge>) getAllResources("MedicationKnowledge");
     }

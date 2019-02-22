@@ -61,7 +61,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private ImmutableList<MedAttr> attributes;
     private ImmutableList<Sentence> sortedSentences;
     private ImmutableList<MedAttr> formsRoutesFrequencies;
-    private List<Medication> allMedications;
+    private ImmutableList<Medication> allMedications;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
