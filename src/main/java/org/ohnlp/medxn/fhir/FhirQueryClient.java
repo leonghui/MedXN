@@ -20,7 +20,7 @@ import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import com.google.common.collect.ImmutableList;
-import org.hl7.fhir.dstu3.model.*;
+import org.hl7.fhir.r4.model.*;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -170,6 +170,10 @@ public class FhirQueryClient {
     @SuppressWarnings("unchecked")
     public ImmutableList<Medication> getAllMedications() {
         return (ImmutableList<Medication>) getAllResources("Medication");
+    }
+
+    public ImmutableList<MedicationKnowledge> getAllMedicationKnowledge() {
+        return (ImmutableList<MedicationKnowledge>) getAllResources("MedicationKnowledge");
     }
 
     @SuppressWarnings("unchecked")

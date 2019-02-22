@@ -25,7 +25,7 @@ import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
-import org.hl7.fhir.dstu3.model.Medication;
+import org.hl7.fhir.r4.model.Medication;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -118,7 +118,9 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         // CRITERION 1: Consider all medications with the same ingredients
 
         return allMedications.parallelStream()
-                .filter(medication -> !medication.getIsBrand())
+                .filter(medication -> medication.getExtensionsByUrl(
+                        queryClient.getServerUrl() + "/StructureDefinition/brand"
+                ).isEmpty())
                 .filter(medication -> {
                     ImmutableList<String> fhirIngredients = FhirQueryUtils.getIngredientsFromMedication(medication);
 
@@ -260,11 +262,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         }
 
         BigDecimal getStrengthNumeratorValue() {
-            return component.getAmount().getNumerator().getValue();
+            return component.getStrength().getNumerator().getValue();
         }
 
         public String getStrengthNumeratorUnit() {
-            return component.getAmount().getNumerator().getUnit().toLowerCase();
+            return component.getStrength().getNumerator().getUnit().toLowerCase();
         }
 
 
