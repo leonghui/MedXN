@@ -16,15 +16,10 @@
 
 package org.ohnlp.medxn.fhir;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.*;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.jcas.tcas.Annotation;
-import org.hl7.fhir.r4.model.CodeableConcept;
-import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Medication;
+import org.hl7.fhir.r4.model.*;
 
 import java.util.Collection;
 import java.util.Map;
@@ -91,12 +86,13 @@ public class FhirQueryUtils {
     @SuppressWarnings("UnstableApiUsage")
     public static ImmutableMap<String, String> getDosageFormMap(FhirQueryClient queryClient) {
 
-        return queryClient.getAllMedications().stream()
+        return queryClient.getAllMedications().parallelStream()
                 .map(Medication::getForm)
                 .map(CodeableConcept::getCodingFirstRep)
                 .collect(ImmutableMap.toImmutableMap(
                         Coding::getCode,
-                        Coding::getDisplay
+                        Coding::getDisplay,
+                        (c1, c2) -> c1
                 ));
     }
 
