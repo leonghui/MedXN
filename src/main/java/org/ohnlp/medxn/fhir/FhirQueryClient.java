@@ -30,9 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class FhirQueryClient {
     private final FhirContext context = FhirContext.forR4();
@@ -191,18 +189,5 @@ public class FhirQueryClient {
 
     private Path getCachedFilePath(String className) {
         return Paths.get(cacheFolder + File.separator + className + ".json");
-    }
-
-    public Map<String, String> getDosageFormMap() {
-        Map<String, String> dosageFormMap = new LinkedHashMap<>();
-
-        getAllMedications().parallelStream()
-                .map(Medication::getForm)
-                .map(CodeableConcept::getCodingFirstRep)
-                .forEach(coding ->
-                        dosageFormMap.putIfAbsent(coding.getCode(), coding.getDisplay())
-                );
-
-        return dosageFormMap;
     }
 }

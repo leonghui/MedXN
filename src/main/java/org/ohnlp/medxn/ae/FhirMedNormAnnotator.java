@@ -26,6 +26,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.hl7.fhir.r4.model.Medication;
+import org.hl7.fhir.r4.model.MedicationKnowledge;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -34,11 +35,11 @@ import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Optional;
 
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
-    private List<Medication> allMedications;
+    private ImmutableList<Medication> allMedications;
+    private ImmutableList<MedicationKnowledge> allMedicationKnowledge;
     private FhirQueryClient queryClient;
 
     @Override
@@ -51,6 +52,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         allMedications = queryClient.getAllMedications();
+        allMedicationKnowledge = queryClient.getAllMedicationKnowledge();
     }
 
     @Override
@@ -87,6 +89,24 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 } else {
                     Comparator<Medication> byLevenshteinDistance = (m1, m2) -> {
                         Levenshtein levenshtein = new Levenshtein();
+
+                        MedicationKnowledge mk1 = allMedicationKnowledge.stream()
+                                .filter(medicationKnowledge ->
+                                        medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
+                                                m1.getCode().getCodingFirstRep().getCode()
+                                        ))
+                                .findFirst()
+                                .orElse(new MedicationKnowledge());
+
+                        MedicationKnowledge mk2 = allMedicationKnowledge.stream()
+                                .filter(medicationKnowledge ->
+                                        medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
+                                                m2.getCode().getCodingFirstRep().getCode()
+                                        ))
+                                .findFirst()
+                                .orElse(new MedicationKnowledge());
+
+                        // FIXME
 
                         return Double.compare(
                                 levenshtein.distance(m1.getCode().getCodingFirstRep().getDisplay(), drug.getCoveredText()),
@@ -274,8 +294,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         public String getStrengthNumeratorUnit() {
             return component.getStrength().getNumerator().getUnit().toLowerCase();
         }
-
-
     }
 
     class IngredientCommons {

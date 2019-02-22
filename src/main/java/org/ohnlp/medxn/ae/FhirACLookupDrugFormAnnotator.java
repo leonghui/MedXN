@@ -52,7 +52,7 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
-        queryClient.getDosageFormMap().forEach((rxCui, term) -> {
+        FhirQueryUtils.getDosageFormMap(queryClient).forEach((rxCui, term) -> {
 
             doseForms.keywordMap.put(rxCui, term.toLowerCase());
 

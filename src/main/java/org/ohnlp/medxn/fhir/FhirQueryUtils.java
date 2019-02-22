@@ -88,6 +88,18 @@ public class FhirQueryUtils {
                 .collect(ImmutableList.toImmutableList());
     }
 
+    @SuppressWarnings("UnstableApiUsage")
+    public static ImmutableMap<String, String> getDosageFormMap(FhirQueryClient queryClient) {
+
+        return queryClient.getAllMedications().stream()
+                .map(Medication::getForm)
+                .map(CodeableConcept::getCodingFirstRep)
+                .collect(ImmutableMap.toImmutableMap(
+                        Coding::getCode,
+                        Coding::getDisplay
+                ));
+    }
+
     public static class MedAttrConstants {
         public static final String STRENGTH = "strength";
         public static final String FORM = "form";
