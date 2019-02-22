@@ -112,5 +112,13 @@ public class FhirQueryUtils {
 
         // Data structure to store the trie
         public Trie trie;
+
+        public int getConceptSize() {
+            return keywordMap.keySet().size();
+        }
+
+        public int getKeywordSize() {
+            return keywordMap.values().size();
+        }
     }
 }
