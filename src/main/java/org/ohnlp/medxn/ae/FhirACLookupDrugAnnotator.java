@@ -51,7 +51,8 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final FhirQueryUtils.LookupTable brands = new FhirQueryUtils.LookupTable();
     private FhirQueryClient queryClient;
     private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
-    private final Pattern digitsSlashDigits = Pattern.compile(" \\d+\\/\\d+");
+    private final Pattern digitsSlashDigits = Pattern.compile(" \\d+/\\d+");
+    private final Pattern doublePunctOrWhitespace = Pattern.compile("(\\p{Punct}|\\s){2}");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -75,6 +76,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                                     ingredients.keywordMap.put(coding.getCode(),
                                             synonymExtension.getValue().toString()
                                                     .replaceAll(punctuationOrWhitespace.toString(), " ")
+                                                    .replaceAll(doublePunctOrWhitespace.toString(), " ")
                                     ));
                 });
 
@@ -111,6 +113,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
                             brands.keywordMap.put(productCoding.getCode(),
                                     brand.replaceAll(punctuationOrWhitespace.toString(), " ")
+                                            .replaceAll(doublePunctOrWhitespace.toString(), " ")
                             );
                         })
                 );
