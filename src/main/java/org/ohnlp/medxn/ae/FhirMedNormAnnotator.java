@@ -25,6 +25,7 @@ import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
+import org.apache.uima.util.Level;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationKnowledge;
 import org.hl7.fhir.r4.model.Reference;
@@ -71,6 +72,10 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             } else {
                 candidateMedications = findGenericMedications(jcas, drug);
             }
+
+            getContext().getLogger().log(Level.INFO, "Found " +
+                    candidateMedications.size() + " matches with the same ingredient(s)"
+            );
 
             ImmutableSet<Medication> results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
 
@@ -185,6 +190,10 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
+        getContext().getLogger().log(Level.INFO, "Found " +
+                fhirMedicationsDoseForm.size() + " matches with the same dose form"
+        );
+
         // CRITERION 2b: Include only medications with the same route, if dose form is not found or unavailable
         FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
 
@@ -236,11 +245,13 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                     .contains(routeNormText);
                         })
                 )
-
                 .collect(ImmutableSet.toImmutableSet());
 
-        // prefer concepts with dose form
+        getContext().getLogger().log(Level.INFO, "Found " +
+                fhirMedicationsRoute.size() + " matches with the same route"
+        );
 
+        // prefer concepts with dose form
         return !fhirMedicationsDoseForm.isEmpty() ? fhirMedicationsDoseForm : fhirMedicationsRoute;
     }
 
@@ -272,6 +283,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
+        getContext().getLogger().log(Level.INFO, "Found " +
+                fhirMedicationsStrength.size() + " matches with the same ingredient-strength pairs"
+        );
+
+
         // CRITERION 3b: Include only medications with the same strengths, if ingredient is not found
         ImmutableSet<Medication> fhirMedicationsAnonStrength = medications.stream()
                 .filter(medication ->
@@ -289,8 +305,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
-        // prefer concepts with ingredient-strength pairs
+        getContext().getLogger().log(Level.INFO, "Found " +
+                fhirMedicationsAnonStrength.size() + " matches with the same strength"
+        );
 
+        // prefer concepts with ingredient-strength pairs
         return !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength : fhirMedicationsAnonStrength;
     }
 
@@ -334,12 +353,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             return BigDecimal.valueOf(ingredient.getAmountValue());
         }
 
-        public String getStrengthNumeratorUnit() {
+        String getStrengthNumeratorUnit() {
             return ingredient.getAmountUnit().toLowerCase();
-        }
-
-        String getItem() {
-            return ingredient.getItem();
         }
     }
 }
