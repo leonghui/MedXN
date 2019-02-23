@@ -112,21 +112,32 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 .sorted(Comparator.comparingInt(MedAttr::getBegin).thenComparingInt(MedAttr::getEnd))
                 .collect(ImmutableList.toImmutableList());
 
+        removeOverlappingDrugs(jcas);
         removeFalseDrugs(jcas);
         mergeBrandsAndGenerics(jcas);
         createLookupWindows(jcas);
         associateAttributesAndIngredients(jcas);
     }
 
+    private void removeOverlappingDrugs(JCas jcas) {
+        ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
+
+        // remove drugs that overlap with attributes
+        drugs.stream()
+                .filter(drug ->
+                        attributes.stream()
+                                .filter(attribute -> attribute.getBegin() <= drug.getBegin())
+                                .anyMatch(attribute -> attribute.getEnd() >= drug.getEnd())
+                )
+                .forEach(Drug::removeFromIndexes);
+    }
+
     // Remove false drugs using Mayo Clinic's falseMedDict.txt
     @SuppressWarnings("UnstableApiUsage")
     private void removeFalseDrugs(JCas jcas) {
-        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
-                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
-                jcas.getAnnotationIndex(Drug.type)
-        );
+        ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
-        sortedDrugs.stream()
+        drugs.stream()
                 .filter(drug ->
                         falseMedications.contains(
                                 drug.getCoveredText().toLowerCase().replaceAll("\\W", " ")
