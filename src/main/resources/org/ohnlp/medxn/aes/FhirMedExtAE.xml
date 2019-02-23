@@ -84,5 +84,12 @@ http://&lt;hostname&gt;:&lt;port&gt;/fhir/</description>
             <outputsNewCASes>false</outputsNewCASes>
         </operationalProperties>
     </analysisEngineMetaData>
+    <externalResourceDependencies>
+        <externalResourceDependency>
+            <key>falseMedDict</key>
+            <description/>
+            <optional>false</optional>
+        </externalResourceDependency>
+    </externalResourceDependencies>
     <resourceManagerConfiguration/>
 </analysisEngineDescription>

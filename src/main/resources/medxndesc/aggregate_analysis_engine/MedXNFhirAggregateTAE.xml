@@ -215,6 +215,13 @@
                     <fileUrl>file:medxnresources/regExPatterns.txt</fileUrl>
                 </fileResourceSpecifier>
             </externalResource>
+            <externalResource>
+                <name>falseMedDict</name>
+                <description>list of potentially false drugs</description>
+                <fileResourceSpecifier>
+                    <fileUrl>file:medxnresources/lookup/falseMedDict.txt</fileUrl>
+                </fileResourceSpecifier>
+            </externalResource>
         </externalResources>
         <externalResourceBindings>
             <externalResourceBinding>
@@ -248,6 +255,10 @@
             <externalResourceBinding>
                 <key>MedAttrAE/regExPatterns</key>
                 <resourceName>regExPatterns</resourceName>
+            </externalResourceBinding>
+            <externalResourceBinding>
+                <key>FhirMedExtAE/falseMedDict</key>
+                <resourceName>falseMedDict</resourceName>
             </externalResourceBinding>
         </externalResourceBindings>
     </resourceManagerConfiguration>

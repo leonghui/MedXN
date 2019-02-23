@@ -34,7 +34,7 @@ import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.cas.FeatureStructure;
 import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
-import org.apache.uima.jcas.cas.TOP;
+import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
 import org.hl7.fhir.r4.model.Medication;
@@ -46,10 +46,11 @@ import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -62,7 +63,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private ImmutableList<Sentence> sortedSentences;
     private ImmutableList<MedAttr> formsRoutesFrequencies;
     private ImmutableList<Medication> allMedications;
+    private ImmutableList<String> falseMedications;
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
         super.initialize(uimaContext);
@@ -73,6 +76,23 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         allMedications = queryClient.getAllMedications();
+
+        try {
+            Path filePath = Paths.get(getContext().getResourceURI("falseMedDict"));
+
+            falseMedications = Files.lines(filePath)
+                    .filter(line -> !line.startsWith("#"))
+                    .filter(line -> line.length() != 0)
+                    .filter(line -> Character.isWhitespace(line.charAt(0)))
+                    .map(String::toLowerCase)
+                    .map(String::trim)
+                    .collect(ImmutableList.toImmutableList());
+
+        } catch (IOException | ResourceAccessException ex) {
+            System.out.println(ex.getClass());
+            System.out.println("ERROR: Reading falseMedDict.txt " + ex.toString());
+        }
+
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -92,9 +112,23 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 .sorted(Comparator.comparingInt(MedAttr::getBegin).thenComparingInt(MedAttr::getEnd))
                 .collect(ImmutableList.toImmutableList());
 
+        removeFalseDrugs(jcas);
         mergeBrandsAndGenerics(jcas);
         createLookupWindows(jcas);
         associateAttributesAndIngredients(jcas);
+    }
+
+    // Remove false drugs using Mayo Clinic's falseMedDict.txt
+    private void removeFalseDrugs(JCas jcas) {
+        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+                Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
+                jcas.getAnnotationIndex(Drug.type)
+        );
+
+        sortedDrugs.stream()
+                .filter(drug ->
+                        falseMedications.contains(Optional.ofNullable(drug.getBrand()).orElse("").toLowerCase()))
+                .forEach(Drug::removeFromIndexes);
     }
 
     private void mergeBrandsAndGenerics(JCas jcas) {
@@ -267,7 +301,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
                 }
             });
         });
-        windows.forEach(TOP::addToIndexes);
+        windows.forEach(LookupWindow::addToIndexes);
     }
 
     private void associateAttributesAndIngredients(JCas jcas) {
