@@ -64,20 +64,19 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient
                 .getAllSubstances()
-                .forEach(substance -> substance
-                        .getExtensionsByUrl(queryClient.getServerUrl() + "StructureDefinition/synonym")
-                        .forEach(synonymExtension -> {
-                            Coding coding = substance.getCode().getCodingFirstRep();
+                .forEach(substance -> {
+                    Coding coding = substance.getCode().getCodingFirstRep();
 
-                            ingredients.keywordMap.put(coding.getCode(),
-                                    coding.getDisplay());
+                    ingredients.keywordMap.put(coding.getCode(),
+                            coding.getDisplay());
 
-                            ingredients.keywordMap.put(coding.getCode(),
-                                    synonymExtension.getValue().toString()
-                                            .replaceAll(punctuationOrWhitespace.toString(), " ")
-                            );
-                        })
-                );
+                    substance.getExtensionsByUrl(queryClient.getServerUrl() + "StructureDefinition/synonym")
+                            .forEach(synonymExtension ->
+                                    ingredients.keywordMap.put(coding.getCode(),
+                                            synonymExtension.getValue().toString()
+                                                    .replaceAll(punctuationOrWhitespace.toString(), " ")
+                                    ));
+                });
 
         ingredients.trie = Trie.builder()
                 .ignoreCase()
