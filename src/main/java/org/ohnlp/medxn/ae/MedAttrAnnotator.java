@@ -86,6 +86,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
 			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
 			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
+			doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Inhaler", "Inh").toLowerCase());
 		});
 
 		List<String> commonOmittedWords = Arrays.asList(
@@ -225,7 +226,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 		List<Attribute> tmp = new ArrayList<>();
 		Set<String> spans = new HashSet<>();
 
-		//remove duplicates 
+		//remove duplicates
 		for(Attribute a : attr) {
 			String span = a.tag+"|"+a.begin+"|"+a.end;
 			if(spans.contains(span)) continue;
@@ -233,7 +234,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 			tmp.add(a);
 		}
 
-		//if one is subsumed by another, use a longer one 
+		//if one is subsumed by another, use a longer one
 		//(CAUTION: duplicated instances will be removed all)
 		//duplicates must be removed before this step
 		boolean isOverlap;
@@ -274,7 +275,7 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 							|| Character.isWhitespace(line.charAt(0)) )
 						continue;
 
-					//get variable definitions (MUST BE before regEx patterns in the file) 
+					//get variable definitions (MUST BE before regEx patterns in the file)
 					//eg) @STRENGTH_UNIT::mg/dl|mg/ml|g/l|milligrams
 					if(line.startsWith("@")) {
 						String [] tokens = line.split("::");
