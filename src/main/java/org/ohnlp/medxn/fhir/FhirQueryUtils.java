@@ -23,6 +23,7 @@ import org.hl7.fhir.r4.model.*;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class FhirQueryUtils {
@@ -56,23 +57,27 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableList<String> getIngredientsFromMedication(Medication medication) {
-        return medication.getIngredient().parallelStream()
+    public static ImmutableList<String> getIngredientIdsFromMedication(Medication medication) {
+        return medication.getIngredient().stream()
                 .map(Medication.MedicationIngredientComponent::getItem)
-                .map(CodeableConcept.class::cast)
-                .map(CodeableConcept::getCodingFirstRep)
-                .map(Coding::getCode)
+                .filter(Objects::nonNull)
+                .map(Reference.class::cast)
+                .map(Reference::getReference)
+                .map(string -> string.split("/")[1])
+                .map(string -> string.split("rxNorm-")[1])
                 .collect(ImmutableList.toImmutableList());
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableList<String> getIngredientsFromMedications(Collection<Medication> allMedications) {
-        return allMedications.parallelStream()
+    public static ImmutableList<String> getIngredientIdsFromMedications(Collection<Medication> medications) {
+        return medications.parallelStream()
                 .flatMap(medication -> medication.getIngredient().stream()
-                        .map(Medication.MedicationIngredientComponent::getItem))
-                .map(CodeableConcept.class::cast)
-                .map(CodeableConcept::getCodingFirstRep)
-                .map(Coding::getCode)
+                        .map(Medication.MedicationIngredientComponent::getItem)
+                        .filter(Objects::nonNull)
+                        .map(Reference.class::cast)
+                        .map(Reference::getReference)
+                        .map(string -> string.split("/")[1]))
+                        .map(string -> string.split("rxNorm-")[1])
                 .collect(ImmutableList.toImmutableList());
     }
 
