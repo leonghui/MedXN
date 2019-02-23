@@ -52,8 +52,6 @@ import java.util.regex.Pattern;
  * Extract medication attributes defined in regExPatterns
  */
 public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
-	private final FhirQueryUtils.LookupTable doseForms = new FhirQueryUtils.LookupTable();
-
 	class Attribute {
 		String tag;
 		String text;
@@ -62,6 +60,10 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 	}
 
 	private Map< String, List<String> > regExPat;
+
+	private final FhirQueryUtils.LookupTable doseForms = new FhirQueryUtils.LookupTable();
+
+	private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
 
 	public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
 		super.initialize(uimaContext);
@@ -192,10 +194,11 @@ public class MedAttrAnnotator extends JCasAnnotator_ImplBase {
 					}
 				}
 			}
-
+			// note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
 			String sanitizedText = text
-					.replaceAll("\\s+", " ") // replace all whitespace characters with a space
-					.replaceAll("(\\p{Punct})", " "); // replace all punctuations with a space
+					// replace single punctuations and whitespaces with a single space
+					.replaceAll(punctuationOrWhitespace.toString(), " ");
+
 
 			doseForms.trie.parseText(sanitizedText).forEach(emit -> {
 				Attribute attr = new Attribute();
