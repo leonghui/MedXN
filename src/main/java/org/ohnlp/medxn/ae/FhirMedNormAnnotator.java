@@ -163,7 +163,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         return allMedications.parallelStream()
                 .filter(medication -> medication.getExtensionsByUrl(
-                        queryClient.getServerUrl() + "/StructureDefinition/brand"
+                        queryClient.getServerUrl() + "StructureDefinition/brand"
                 ).isEmpty())
                 .filter(medication -> {
                     ImmutableList<String> fhirIngredients = FhirQueryUtils.getIngredientIdsFromMedication(medication);

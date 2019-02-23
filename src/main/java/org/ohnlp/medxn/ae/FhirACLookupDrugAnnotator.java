@@ -63,7 +63,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         queryClient
                 .getAllSubstances()
                 .forEach(substance -> substance
-                        .getExtensionsByUrl(queryClient.getServerUrl() + "/StructureDefinition/synonym")
+                        .getExtensionsByUrl(queryClient.getServerUrl() + "StructureDefinition/synonym")
                         .forEach(synonymExtension -> {
                             Coding coding = substance.getCode().getCodingFirstRep();
 
@@ -92,7 +92,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         queryClient
                 .getAllMedications()
                 .forEach(medication -> medication
-                        .getExtensionsByUrl(queryClient.getServerUrl() + "/StructureDefinition/brand")
+                        .getExtensionsByUrl(queryClient.getServerUrl() + "StructureDefinition/brand")
                         .stream()
                         .findFirst()
                         .ifPresent(brandExtension -> {
