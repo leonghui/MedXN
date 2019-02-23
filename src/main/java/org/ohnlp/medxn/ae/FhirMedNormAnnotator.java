@@ -27,6 +27,8 @@ import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationKnowledge;
+import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.StringType;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -87,7 +89,16 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                     drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
                     drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
                 } else {
-                    Comparator<Medication> byLevenshteinDistance = (m1, m2) -> {
+                    Comparator<String> byLevenshteinDistance = (s1, s2) -> {
+                        Levenshtein levenshtein = new Levenshtein();
+
+                        return Double.compare(
+                                levenshtein.distance(s1, drug.getCoveredText()),
+                                levenshtein.distance(s2, drug.getCoveredText())
+                        );
+                    };
+
+                    Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
                         Levenshtein levenshtein = new Levenshtein();
 
                         MedicationKnowledge mk1 = allMedicationKnowledge.stream()
@@ -106,16 +117,24 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                 .findFirst()
                                 .orElse(new MedicationKnowledge());
 
-                        // FIXME
+                        String mk1ClosestSynonym = mk1.getSynonym().stream()
+                                .map(StringType::toString)
+                                .min(byLevenshteinDistance)
+                                .orElse("");
+
+                        String mk2ClosestSynonym = mk2.getSynonym().stream()
+                                .map(StringType::toString)
+                                .min(byLevenshteinDistance)
+                                .orElse("");
 
                         return Double.compare(
-                                levenshtein.distance(m1.getCode().getCodingFirstRep().getDisplay(), drug.getCoveredText()),
-                                levenshtein.distance(m2.getCode().getCodingFirstRep().getDisplay(), drug.getCoveredText())
+                                levenshtein.distance(mk1ClosestSynonym, drug.getCoveredText()),
+                                levenshtein.distance(mk2ClosestSynonym, drug.getCoveredText())
                         );
                     };
 
                     results.stream()
-                            .min(byLevenshteinDistance)
+                            .min(byLevenshteinDistanceForMedications)
                             .ifPresent(finalMed -> {
                                 drug.setNormRxName2(finalMed.getCode().getCodingFirstRep().getDisplay());
                                 drug.setNormRxCui2(finalMed.getCode().getCodingFirstRep().getCode());
