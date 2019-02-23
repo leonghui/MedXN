@@ -83,7 +83,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             falseMedications = Files.lines(filePath)
                     .filter(line -> !line.startsWith("#"))
                     .filter(line -> line.length() != 0)
-                    .filter(line -> Character.isWhitespace(line.charAt(0)))
+                    .filter(line -> !Character.isWhitespace(line.charAt(0)))
                     .map(String::toLowerCase)
                     .map(String::trim)
                     .collect(ImmutableList.toImmutableList());
@@ -119,6 +119,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     // Remove false drugs using Mayo Clinic's falseMedDict.txt
+    @SuppressWarnings("UnstableApiUsage")
     private void removeFalseDrugs(JCas jcas) {
         ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
@@ -127,8 +128,14 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
         sortedDrugs.stream()
                 .filter(drug ->
-                        falseMedications.contains(Optional.ofNullable(drug.getBrand()).orElse("").toLowerCase()))
-                .forEach(Drug::removeFromIndexes);
+                        falseMedications.contains(
+                                drug.getCoveredText().toLowerCase().replaceAll("\\W", " ")
+                        ))
+                .forEach(drug -> {
+                    drug.removeFromIndexes(jcas);
+
+                    getContext().getLogger().log(Level.INFO, "Removed drug: " + drug.getCoveredText());
+                });
     }
 
     private void mergeBrandsAndGenerics(JCas jcas) {
