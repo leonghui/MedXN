@@ -42,6 +42,7 @@ import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.typesystem.type.textspan.Segment;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
@@ -50,6 +51,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final FhirQueryUtils.LookupTable brands = new FhirQueryUtils.LookupTable();
     private FhirQueryClient queryClient;
     private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
+    private final Pattern digitsSlashDigits = Pattern.compile(" \\d+\\/\\d+");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -98,9 +100,18 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         .ifPresent(brandExtension -> {
                             Coding productCoding = medication.getCode().getCodingFirstRep();
 
+                            String brand = brandExtension.getValue().toString();
+
+                            Matcher brandWithMultipleStrength = digitsSlashDigits.matcher(brand);
+
+                            // enrich keyword map with trade name root without multiple strengths
+                            if (brandWithMultipleStrength.find()) {
+                                brands.keywordMap.put(productCoding.getCode(),
+                                        brandWithMultipleStrength.replaceAll(""));
+                            }
+
                             brands.keywordMap.put(productCoding.getCode(),
-                                    brandExtension.getValue().toString()
-                                            .replaceAll(punctuationOrWhitespace.toString(), " ")
+                                    brand.replaceAll(punctuationOrWhitespace.toString(), " ")
                             );
                         })
                 );
