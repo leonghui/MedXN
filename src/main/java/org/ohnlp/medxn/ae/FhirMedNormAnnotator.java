@@ -303,15 +303,19 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         }
 
         String getItemCode() {
-            return component.getItemCodeableConcept().getCodingFirstRep().getCode();
+            Reference substanceReference = (Reference) component.getItem();
+
+            return substanceReference.getReference().split("/")[1].split("rxNorm-")[1];
         }
 
         BigDecimal getStrengthNumeratorValue() {
-            return component.getStrength().getNumerator().getValue();
+            return Optional.ofNullable(component.getStrength().getNumerator().getValue())
+                    .orElse(BigDecimal.valueOf(0));
         }
 
-        public String getStrengthNumeratorUnit() {
-            return component.getStrength().getNumerator().getUnit().toLowerCase();
+        String getStrengthNumeratorUnit() {
+            return Optional.of(component.getStrength().getNumerator().getUnit().toLowerCase())
+                    .orElse("");
         }
     }
 
