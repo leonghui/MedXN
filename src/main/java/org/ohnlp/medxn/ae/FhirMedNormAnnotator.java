@@ -34,6 +34,7 @@ import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
+import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
@@ -60,93 +61,94 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
-        ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
+        jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
+                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
+                    Drug drug = (Drug) drugAnnotation;
 
-        drugs.forEach(drug -> {
-            ImmutableSet<Medication> candidateMedications;
+                    ImmutableSet<Medication> candidateMedications;
 
-            if (drug.getBrand() != null) {
-                ImmutableSet<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
+                    if (drug.getBrand() != null) {
+                        ImmutableSet<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
 
-                candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
-            } else {
-                candidateMedications = findGenericMedications(jcas, drug);
-            }
+                        candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
+                    } else {
+                        candidateMedications = findGenericMedications(jcas, drug);
+                    }
 
-            getContext().getLogger().log(Level.INFO, "Found " +
-                    candidateMedications.size() + " matches with the same ingredient(s)"
-            );
+                    getContext().getLogger().log(Level.INFO, "Found " +
+                            candidateMedications.size() + " matches with the same ingredient(s)"
+                    );
 
-            ImmutableSet<Medication> results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
+                    ImmutableSet<Medication> results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
 
-            // TODO introduce recursion later
-            if (results.size() == 1) {
-                Medication medication = results.iterator().next();
+                    // TODO introduce recursion later
+                    if (results.size() == 1) {
+                        Medication medication = results.iterator().next();
 
-                drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-            } else {
-                results = filterByStrength(jcas, drug, results);
+                        drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                        drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                    } else {
+                        results = filterByStrength(jcas, drug, results);
 
-                if (results.size() == 1) {
-                    Medication medication = results.iterator().next();
+                        if (results.size() == 1) {
+                            Medication medication = results.iterator().next();
 
-                    drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                    drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-                } else {
-                    Comparator<String> byLevenshteinDistance = (s1, s2) -> {
-                        Levenshtein levenshtein = new Levenshtein();
+                            drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                            drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                        } else {
+                            Comparator<String> byLevenshteinDistance = (s1, s2) -> {
+                                Levenshtein levenshtein = new Levenshtein();
 
-                        return Double.compare(
-                                levenshtein.distance(s1, drug.getCoveredText()),
-                                levenshtein.distance(s2, drug.getCoveredText())
-                        );
-                    };
+                                return Double.compare(
+                                        levenshtein.distance(s1, window.getCoveredText()),
+                                        levenshtein.distance(s2, window.getCoveredText())
+                                );
+                            };
 
-                    Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
-                        Levenshtein levenshtein = new Levenshtein();
+                            Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
+                                Levenshtein levenshtein = new Levenshtein();
 
-                        MedicationKnowledge mk1 = allMedicationKnowledge.stream()
-                                .filter(medicationKnowledge ->
-                                        medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
-                                                m1.getCode().getCodingFirstRep().getCode()
-                                        ))
-                                .findFirst()
-                                .orElse(new MedicationKnowledge());
+                                MedicationKnowledge mk1 = allMedicationKnowledge.stream()
+                                        .filter(medicationKnowledge ->
+                                                medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
+                                                        m1.getCode().getCodingFirstRep().getCode()
+                                                ))
+                                        .findFirst()
+                                        .orElse(new MedicationKnowledge());
 
-                        MedicationKnowledge mk2 = allMedicationKnowledge.stream()
-                                .filter(medicationKnowledge ->
-                                        medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
-                                                m2.getCode().getCodingFirstRep().getCode()
-                                        ))
-                                .findFirst()
-                                .orElse(new MedicationKnowledge());
+                                MedicationKnowledge mk2 = allMedicationKnowledge.stream()
+                                        .filter(medicationKnowledge ->
+                                                medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
+                                                        m2.getCode().getCodingFirstRep().getCode()
+                                                ))
+                                        .findFirst()
+                                        .orElse(new MedicationKnowledge());
 
-                        String mk1ClosestSynonym = mk1.getSynonym().stream()
-                                .map(StringType::toString)
-                                .min(byLevenshteinDistance)
-                                .orElse("");
+                                String mk1ClosestSynonym = mk1.getSynonym().stream()
+                                        .map(StringType::toString)
+                                        .min(byLevenshteinDistance)
+                                        .orElse("");
 
-                        String mk2ClosestSynonym = mk2.getSynonym().stream()
-                                .map(StringType::toString)
-                                .min(byLevenshteinDistance)
-                                .orElse("");
+                                String mk2ClosestSynonym = mk2.getSynonym().stream()
+                                        .map(StringType::toString)
+                                        .min(byLevenshteinDistance)
+                                        .orElse("");
 
-                        return Double.compare(
-                                levenshtein.distance(mk1ClosestSynonym, drug.getCoveredText()),
-                                levenshtein.distance(mk2ClosestSynonym, drug.getCoveredText())
-                        );
-                    };
+                                return Double.compare(
+                                        levenshtein.distance(mk1ClosestSynonym, window.getCoveredText()),
+                                        levenshtein.distance(mk2ClosestSynonym, window.getCoveredText())
+                                );
+                            };
 
-                    results.stream()
-                            .min(byLevenshteinDistanceForMedications)
-                            .ifPresent(finalMed -> {
-                                drug.setNormRxName2(finalMed.getCode().getCodingFirstRep().getDisplay());
-                                drug.setNormRxCui2(finalMed.getCode().getCodingFirstRep().getCode());
-                            });
-                }
-            }
-        });
+                            results.stream()
+                                    .min(byLevenshteinDistanceForMedications)
+                                    .ifPresent(finalMed -> {
+                                        drug.setNormRxName2(finalMed.getCode().getCodingFirstRep().getDisplay());
+                                        drug.setNormRxCui2(finalMed.getCode().getCodingFirstRep().getCode());
+                                    });
+                        }
+                    }
+                }));
     }
 
     @SuppressWarnings("UnstableApiUsage")
