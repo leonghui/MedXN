@@ -76,7 +76,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                     }
 
                     getContext().getLogger().log(Level.INFO, "Found " +
-                            candidateMedications.size() + " matches with the same ingredient(s)"
+                            candidateMedications.size() + " matches with the same ingredient(s) for drug: " +
+                            drug.getCoveredText()
                     );
 
                     ImmutableSet<Medication> results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
@@ -193,7 +194,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         getContext().getLogger().log(Level.INFO, "Found " +
-                fhirMedicationsDoseForm.size() + " matches with the same dose form"
+                fhirMedicationsDoseForm.size() + " matches with the same dose form for drug: " +
+                drug.getCoveredText()
         );
 
         // CRITERION 2b: Include only medications with the same route, if dose form is not found or unavailable
@@ -250,7 +252,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         getContext().getLogger().log(Level.INFO, "Found " +
-                fhirMedicationsRoute.size() + " matches with the same route"
+                fhirMedicationsRoute.size() + " matches with the same route for drug: " +
+                drug.getCoveredText()
         );
 
         // prefer concepts with dose form
@@ -286,7 +289,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         getContext().getLogger().log(Level.INFO, "Found " +
-                fhirMedicationsStrength.size() + " matches with the same ingredient-strength pairs"
+                fhirMedicationsStrength.size() + " matches with the same ingredient-strength pairs for drug: " +
+                drug.getCoveredText()
         );
 
 
@@ -308,7 +312,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                 .collect(ImmutableSet.toImmutableSet());
 
         getContext().getLogger().log(Level.INFO, "Found " +
-                fhirMedicationsAnonStrength.size() + " matches with the same strength"
+                fhirMedicationsAnonStrength.size() + " matches with the same strength for drug: " +
+                drug.getCoveredText()
         );
 
         // prefer concepts with ingredient-strength pairs
