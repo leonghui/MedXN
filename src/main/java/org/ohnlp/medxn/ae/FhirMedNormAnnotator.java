@@ -257,7 +257,9 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         );
 
         // prefer concepts with dose form
-        return !fhirMedicationsDoseForm.isEmpty() ? fhirMedicationsDoseForm : fhirMedicationsRoute;
+        return !fhirMedicationsDoseForm.isEmpty() ? fhirMedicationsDoseForm :
+                !fhirMedicationsRoute.isEmpty() ? fhirMedicationsRoute :
+                        medications;
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -317,7 +319,9 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         );
 
         // prefer concepts with ingredient-strength pairs
-        return !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength : fhirMedicationsAnonStrength;
+        return !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength :
+                !fhirMedicationsAnonStrength.isEmpty() ? fhirMedicationsAnonStrength :
+                medications;
     }
 
     // use Adapter pattern to simplify comparisons
