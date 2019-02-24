@@ -142,6 +142,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                     .ifPresent(finalMed -> {
                                         drug.setNormRxName2(finalMed.getCode().getCodingFirstRep().getDisplay());
                                         drug.setNormRxCui2(finalMed.getCode().getCodingFirstRep().getCode());
+
+                                        getContext().getLogger().log(Level.INFO, "Using Levenshtein distance: " +
+                                                finalMed.getCode().getCodingFirstRep().getCode() +
+                                                " for drug: " + drug.getCoveredText()
+                                        );
                                     });
                         }
                     }
