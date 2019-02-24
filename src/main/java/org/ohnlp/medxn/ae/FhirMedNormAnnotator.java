@@ -61,26 +61,66 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
-        jcas.getAnnotationIndex(LookupWindow.type).forEach(window ->
-                jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
-                    Drug drug = (Drug) drugAnnotation;
+        jcas.getAnnotationIndex(LookupWindow.type).forEach(window -> {
 
-                    ImmutableSet<Medication> candidateMedications;
+            Comparator<String> byLevenshteinDistance = (s1, s2) -> {
+                Levenshtein levenshtein = new Levenshtein();
 
-                    if (drug.getBrand() != null) {
-                        ImmutableSet<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
+                return Double.compare(
+                        levenshtein.distance(s1, window.getCoveredText()),
+                        levenshtein.distance(s2, window.getCoveredText())
+                );
+            };
 
-                        candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
-                    } else {
-                        candidateMedications = findGenericMedications(jcas, drug);
-                    }
+            Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
+                Levenshtein levenshtein = new Levenshtein();
 
-                    getContext().getLogger().log(Level.INFO, "Found " +
-                            candidateMedications.size() + " matches with the same ingredient(s) for drug: " +
-                            drug.getCoveredText()
-                    );
+                java.util.function.Function<Medication, String> getClosestSynonym = (medication ->
+                        allMedicationKnowledge.stream()
+                                .filter(medicationKnowledge ->
+                                        medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
+                                                medication.getCode().getCodingFirstRep().getCode()
+                                        ))
+                                .findFirst()
+                                .orElse(new MedicationKnowledge())
+                                .getSynonym().stream()
+                                .map(StringType::toString)
+                                .min(byLevenshteinDistance)
+                                .orElse(""));
 
-                    ImmutableSet<Medication> results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
+                return Double.compare(
+                        levenshtein.distance(getClosestSynonym.apply(m1), window.getCoveredText()),
+                        levenshtein.distance(getClosestSynonym.apply(m2), window.getCoveredText())
+                );
+            };
+
+            jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
+                Drug drug = (Drug) drugAnnotation;
+
+                ImmutableSet<Medication> candidateMedications;
+
+                if (drug.getBrand() != null) {
+                    ImmutableSet<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
+
+                    candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
+                } else {
+                    candidateMedications = findGenericMedications(jcas, drug);
+                }
+
+                getContext().getLogger().log(Level.INFO, "Found " +
+                        candidateMedications.size() + " matches with the same ingredient(s) for drug: " +
+                        drug.getCoveredText()
+                );
+
+                ImmutableSet<Medication> results = candidateMedications;
+
+                if (results.size() == 1) {
+                    Medication medication = results.iterator().next();
+
+                    drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                    drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                } else {
+                    results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
 
                     // TODO introduce recursion later
                     if (results.size() == 1) {
@@ -97,50 +137,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                             drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
                             drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
                         } else {
-                            Comparator<String> byLevenshteinDistance = (s1, s2) -> {
-                                Levenshtein levenshtein = new Levenshtein();
-
-                                return Double.compare(
-                                        levenshtein.distance(s1, window.getCoveredText()),
-                                        levenshtein.distance(s2, window.getCoveredText())
-                                );
-                            };
-
-                            Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
-                                Levenshtein levenshtein = new Levenshtein();
-
-                                MedicationKnowledge mk1 = allMedicationKnowledge.stream()
-                                        .filter(medicationKnowledge ->
-                                                medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
-                                                        m1.getCode().getCodingFirstRep().getCode()
-                                                ))
-                                        .findFirst()
-                                        .orElse(new MedicationKnowledge());
-
-                                MedicationKnowledge mk2 = allMedicationKnowledge.stream()
-                                        .filter(medicationKnowledge ->
-                                                medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
-                                                        m2.getCode().getCodingFirstRep().getCode()
-                                                ))
-                                        .findFirst()
-                                        .orElse(new MedicationKnowledge());
-
-                                String mk1ClosestSynonym = mk1.getSynonym().stream()
-                                        .map(StringType::toString)
-                                        .min(byLevenshteinDistance)
-                                        .orElse("");
-
-                                String mk2ClosestSynonym = mk2.getSynonym().stream()
-                                        .map(StringType::toString)
-                                        .min(byLevenshteinDistance)
-                                        .orElse("");
-
-                                return Double.compare(
-                                        levenshtein.distance(mk1ClosestSynonym, window.getCoveredText()),
-                                        levenshtein.distance(mk2ClosestSynonym, window.getCoveredText())
-                                );
-                            };
-
                             results.stream()
                                     .min(byLevenshteinDistanceForMedications)
                                     .ifPresent(finalMed -> {
@@ -149,7 +145,9 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                     });
                         }
                     }
-                }));
+                }
+            });
+        });
     }
 
     @SuppressWarnings("UnstableApiUsage")
