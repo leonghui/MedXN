@@ -26,6 +26,8 @@
 
 package org.ohnlp.medxn.ae;
 
+import info.debatty.java.stringsimilarity.Damerau;
+import org.ahocorasick.trie.Token;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
@@ -54,6 +56,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final Pattern digitsSlashDigits = Pattern.compile(" \\d+/\\d+");
     private final Pattern doublePunctOrWhitespace = Pattern.compile("(\\p{Punct}|\\s){2}");
     private final Pattern htmlEntities = Pattern.compile("&\\S+;");
+    private final Damerau damerau = new Damerau();
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -169,37 +172,96 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
                     });
 
+                    // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
+                    brands.trie.tokenize(sentText).parallelStream()
+                            .filter(token -> !token.isMatch())
+                            .map(Token::getFragment)
+                            .filter(fragment -> fragment.length() >= 7)
+                            .forEach(fragment -> brands.keywordMap.values().stream()
+                                    .filter(keyword ->
+                                            damerau.distance(fragment, keyword.toLowerCase()) <= 1)
+                                    .findFirst()
+                                    .ifPresent(keyword -> {
+                                        int offset = sentence.getCoveredText().indexOf(fragment);
+                                        int begin = sentence.getBegin() + offset;
+                                        int end = sentence.getBegin() + offset + fragment.length();
+
+                                        Drug drug = new Drug(jcas, begin, end);
+                                        String brand = String.join(",",
+                                                FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, keyword));
+                                        drug.setBrand(brand);
+                                        drug.addToIndexes(jcas);
+
+                                        getContext().getLogger().log(Level.INFO, "Found brand via fuzzy matching: " +
+                                                fragment
+                                        );
+                                    })
+                            );
+
                     // create ConceptMention and Ingredient for each ingredient found
                     ingredients.trie.parseText(sentText).forEach(emit -> {
                         int begin = sentence.getBegin() + emit.getStart();
                         int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                        Ingredient ingredient = new Ingredient(jcas, begin, end);
                         String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
-                        ingredient.setItem(rxCui);
-                        ingredient.addToIndexes(jcas);
 
-                        ConceptMention concept = new ConceptMention(jcas, begin, end);
+                        createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, rxCui);
 
-                        String ingredientTerm = ingredients.keywordMap.get(rxCui)
-                                .stream().findFirst().orElse("");
-
-                        concept.setNormTarget(ingredientTerm);
-                        concept.setSemGroup(rxCui + "::IN");
-                        concept.setSentence((Sentence) sentence);
-                        concept.addToIndexes(jcas);
-
-                        Drug drug = new Drug(jcas, begin, end);
-
-                        FSArray ingredientArray = new FSArray(jcas, 1);
-                        ingredientArray.set(0, ingredient);
-                        drug.setIngredients(ingredientArray);
-
-                        drug.addToIndexes(jcas);
-
-                        getContext().getLogger().log(Level.INFO, "Found ingredient: " + concept.getCoveredText());
+                        getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
                     });
+
+                    // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
+                    ingredients.trie.tokenize(sentText).parallelStream()
+                            .filter(token -> !token.isMatch())
+                            .map(Token::getFragment)
+                            .filter(fragment -> fragment.length() >= 7)
+                            .forEach(fragment -> ingredients.keywordMap.values().stream()
+                                    .filter(keyword ->
+                                            damerau.distance(fragment, keyword.toLowerCase()) <= 1)
+                                    .findFirst()
+                                    .ifPresent(keyword -> {
+                                        int offset = sentence.getCoveredText().indexOf(fragment);
+                                        int begin = sentence.getBegin() + offset;
+                                        int end = sentence.getBegin() + offset + fragment.length();
+
+                                        String rxCui = FhirQueryUtils
+                                                .getRxCuiFromKeywordMap(ingredients.keywordMap, keyword);
+
+                                        createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, rxCui);
+
+                                        getContext().getLogger().log(
+                                                Level.INFO, "Found ingredient via fuzzy matching: " + fragment
+                                        );
+                                    })
+                            );
+
+
                 })
         );
+    }
+
+    private void createAnnotationsForIngredient(JCas jcas, Sentence sentence, int begin, int end, String rxCui) {
+        Ingredient ingredient = new Ingredient(jcas, begin, end);
+
+        ingredient.setItem(rxCui);
+        ingredient.addToIndexes(jcas);
+
+        ConceptMention concept = new ConceptMention(jcas, begin, end);
+
+        String ingredientTerm = ingredients.keywordMap.get(rxCui)
+                .stream().findFirst().orElse("");
+
+        concept.setNormTarget(ingredientTerm);
+        concept.setSemGroup(rxCui + "::IN");
+        concept.setSentence(sentence);
+        concept.addToIndexes(jcas);
+
+        Drug drug = new Drug(jcas, begin, end);
+
+        FSArray ingredientArray = new FSArray(jcas, 1);
+        ingredientArray.set(0, ingredient);
+        drug.setIngredients(ingredientArray);
+
+        drug.addToIndexes(jcas);
     }
 }
