@@ -45,6 +45,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private ImmutableList<Medication> allMedications;
     private ImmutableList<MedicationKnowledge> allMedicationKnowledge;
     private FhirQueryClient queryClient;
+    private final Levenshtein levenshtein = new Levenshtein();
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -61,19 +62,13 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
     @Override
     public void process(JCas jcas) {
+
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window -> {
 
-            Comparator<String> byLevenshteinDistance = (s1, s2) -> {
-                Levenshtein levenshtein = new Levenshtein();
-
-                return Double.compare(
-                        levenshtein.distance(s1, window.getCoveredText()),
-                        levenshtein.distance(s2, window.getCoveredText())
-                );
-            };
+            Comparator<String> byLevenshteinDistance = Comparator.comparingDouble(s ->
+                    levenshtein.distance(s, window.getCoveredText()));
 
             Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
-                Levenshtein levenshtein = new Levenshtein();
 
                 java.util.function.Function<Medication, String> getClosestSynonym = (medication ->
                         allMedicationKnowledge.stream()
