@@ -143,10 +143,13 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                     Matcher httpEntitiesMatcher = htmlEntities.matcher(sentText);
 
                     while (httpEntitiesMatcher.find()) {
-                        String substringToRemove = httpEntitiesMatcher.group(0);
+                        String substringToRemove = httpEntitiesMatcher.group();
+
                         sentText = httpEntitiesMatcher.replaceFirst(
-                                new String(new char[substringToRemove.length()]).replace("\0", "")
+                                new String(new char[substringToRemove.length()]).replace("\0", " ")
                         );
+
+                        httpEntitiesMatcher.reset(sentText);
                     }
 
                     // replace single punctuations and whitespaces with a single space
