@@ -53,6 +53,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
     private final Pattern digitsSlashDigits = Pattern.compile(" \\d+/\\d+");
     private final Pattern doublePunctOrWhitespace = Pattern.compile("(\\p{Punct}|\\s){2}");
+    private final Pattern htmlEntities = Pattern.compile("&\\S+;");
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -137,9 +138,19 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 jcas.getAnnotationIndex(Sentence.type).subiterator(segment).forEachRemaining(sentence -> {
 
                     // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
-                    String sentText = sentence.getCoveredText().toLowerCase()
-                            // replace single punctuations and whitespaces with a single space
-                            .replaceAll(punctuationOrWhitespace.toString(), " ");
+                    String sentText = sentence.getCoveredText().toLowerCase();
+
+                    Matcher httpEntitiesMatcher = htmlEntities.matcher(sentText);
+
+                    while (httpEntitiesMatcher.find()) {
+                        String substringToRemove = httpEntitiesMatcher.group(0);
+                        sentText = httpEntitiesMatcher.replaceFirst(
+                                new String(new char[substringToRemove.length()]).replace("\0", "")
+                        );
+                    }
+
+                    // replace single punctuations and whitespaces with a single space
+                    sentText = sentText.replaceAll(punctuationOrWhitespace.toString(), " ");
 
                     // create Drug for each brand found
                     brands.trie.parseText(sentText).forEach(emit -> {
