@@ -94,6 +94,7 @@ public class FhirQueryUtils {
         return queryClient.getAllMedications().parallelStream()
                 .map(Medication::getForm)
                 .map(CodeableConcept::getCodingFirstRep)
+                .filter(coding -> coding.getCode() != null)
                 .collect(ImmutableMap.toImmutableMap(
                         Coding::getCode,
                         Coding::getDisplay,

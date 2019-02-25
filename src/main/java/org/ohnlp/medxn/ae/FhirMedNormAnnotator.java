@@ -187,6 +187,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
         ImmutableSet<Medication> fhirMedicationsDoseForm = medications.stream()
+                .filter(medication -> medication.getForm().getCodingFirstRep().getCode() != null)
                 .filter(medication ->
                         doseForm.contentEquals(medication
                                 .getForm()
@@ -212,6 +213,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         ImmutableSet<Medication> fhirMedicationsRoute = routes.stream()
                 .flatMap(route -> medications.stream()
+                        .filter(medication -> medication.getForm().getCodingFirstRep().getCode() != null)
                         .filter(medication -> {
                             String routeNormText;
 
