@@ -195,7 +195,8 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                     )
                     .forEach(wordToken -> ingredients.keywordMap.values().parallelStream()
                             .filter(keyword ->
-                                    damerau.distance(wordToken.getCoveredText(), keyword.toLowerCase()) == 1
+                                    damerau.distance(
+                                            wordToken.getCoveredText().toLowerCase(), keyword.toLowerCase()) == 1
                             )
                             .findFirst()
                             .ifPresent(keyword -> {
