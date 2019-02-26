@@ -39,6 +39,7 @@ import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -325,13 +326,19 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         }
 
         BigDecimal getStrengthNumeratorValue() {
-            return Optional.ofNullable(component.getStrength().getNumerator().getValue())
-                    .orElse(BigDecimal.valueOf(0));
+            return component.getStrength().getNumerator().getValue();
         }
 
         String getStrengthNumeratorUnit() {
-            return Optional.of(component.getStrength().getNumerator().getUnit().toLowerCase())
-                    .orElse("");
+            return component.getStrength().getNumerator().getUnit().toLowerCase();
+        }
+
+        Table.Cell<String, String, BigDecimal> getCell() {
+            return Tables.immutableCell(getItemCode(), getStrengthNumeratorUnit(), getStrengthNumeratorValue());
+        }
+
+        Map.Entry<String, BigDecimal> getAnonEntry() {
+            return Maps.immutableEntry(getStrengthNumeratorUnit(), getStrengthNumeratorValue());
         }
     }
 
@@ -352,6 +359,14 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         String getStrengthNumeratorUnit() {
             return ingredient.getAmountUnit().toLowerCase();
+        }
+
+        Table.Cell<String, String, BigDecimal> getCell() {
+            return Tables.immutableCell(getItemCode(), getStrengthNumeratorUnit(), getStrengthNumeratorValue());
+        }
+
+        Map.Entry<String, BigDecimal> getAnonEntry() {
+            return Maps.immutableEntry(getStrengthNumeratorUnit(), getStrengthNumeratorValue());
         }
     }
 }
