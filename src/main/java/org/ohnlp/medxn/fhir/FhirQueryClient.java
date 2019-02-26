@@ -177,7 +177,7 @@ public class FhirQueryClient {
         return getAllResources("Medication").stream()
                 .map(Medication.class::cast)
                 .collect(ImmutableMap.toImmutableMap(
-                        medication -> medication.getCode().getCodingFirstRep().getDisplay(),
+                        medication -> medication.getCode().getCodingFirstRep().getCode(),
                         medication -> medication
                 ));
     }
@@ -187,7 +187,7 @@ public class FhirQueryClient {
         return getAllResources("MedicationKnowledge").stream()
                 .map(MedicationKnowledge.class::cast)
                 .collect(ImmutableMap.toImmutableMap(
-                        medicationKnowledge -> medicationKnowledge.getCode().getCodingFirstRep().getDisplay(),
+                        medicationKnowledge -> medicationKnowledge.getCode().getCodingFirstRep().getCode(),
                         medicationKnowledge -> medicationKnowledge
                 ));
     }
@@ -197,7 +197,7 @@ public class FhirQueryClient {
         return getAllResources("Substance").stream()
                 .map(Substance.class::cast)
                 .collect(ImmutableMap.toImmutableMap(
-                        substance -> substance.getCode().getCodingFirstRep().getDisplay(),
+                        substance -> substance.getCode().getCodingFirstRep().getCode(),
                         substance -> substance
                 ));
     }
