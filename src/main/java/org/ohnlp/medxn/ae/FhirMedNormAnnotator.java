@@ -23,8 +23,6 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
-import org.hl7.fhir.r4.model.CodeableConcept;
-import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationKnowledge;
 import org.hl7.fhir.r4.model.Reference;
@@ -191,11 +189,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         getContext().getLogger().log(Level.INFO, "Found " +
                 fhirMedicationsDoseForm.size() + " matches with the same dose form for drug: " +
                 drug.getCoveredText() + " = " +
-                fhirMedicationsDoseForm.stream()
-                        .map(Medication::getCode)
-                        .map(CodeableConcept::getCodingFirstRep)
-                        .map(Coding::getDisplay)
-                        .collect(ImmutableSet.toImmutableSet())
+                FhirQueryUtils.getDisplayNameFromMedications(fhirMedicationsDoseForm)
 
         );
 
@@ -255,11 +249,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         getContext().getLogger().log(Level.INFO, "Found " +
                 fhirMedicationsRoute.size() + " matches with the same route for drug: " +
                 drug.getCoveredText() + " = " +
-                fhirMedicationsRoute.stream()
-                        .map(Medication::getCode)
-                        .map(CodeableConcept::getCodingFirstRep)
-                        .map(Coding::getDisplay)
-                        .collect(ImmutableSet.toImmutableSet())
+                FhirQueryUtils.getDisplayNameFromMedications(fhirMedicationsRoute)
         );
 
         // prefer concepts with dose form
@@ -294,11 +284,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         getContext().getLogger().log(Level.INFO, "Found " +
                 fhirMedicationsStrength.size() + " matches with the same ingredient-strength pairs for drug: " +
                 drug.getCoveredText() + " = " +
-                fhirMedicationsStrength.stream()
-                        .map(Medication::getCode)
-                        .map(CodeableConcept::getCodingFirstRep)
-                        .map(Coding::getDisplay)
-                        .collect(ImmutableSet.toImmutableSet())
+                FhirQueryUtils.getDisplayNameFromMedications(fhirMedicationsStrength)
 
         );
 
@@ -318,11 +304,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         getContext().getLogger().log(Level.INFO, "Found " +
                 fhirMedicationsAnonStrength.size() + " matches with the same strength for drug: " +
                 drug.getCoveredText() + " = " +
-                fhirMedicationsAnonStrength.stream()
-                        .map(Medication::getCode)
-                        .map(CodeableConcept::getCodingFirstRep)
-                        .map(Coding::getDisplay)
-                        .collect(ImmutableSet.toImmutableSet())
+                FhirQueryUtils.getDisplayNameFromMedications(fhirMedicationsAnonStrength)
 
         );
 

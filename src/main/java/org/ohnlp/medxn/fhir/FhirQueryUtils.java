@@ -90,6 +90,15 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
+    public static List<String> getDisplayNameFromMedications(Collection<? extends Medication> medications) {
+        return medications.stream()
+                .map(Medication::getCode)
+                .map(CodeableConcept::getCodingFirstRep)
+                .map(Coding::getDisplay)
+                .collect(ImmutableList.toImmutableList());
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
     public static Map<String, String> getDosageFormMap(FhirQueryClient queryClient) {
 
         return queryClient.getAllMedications().parallelStream()
