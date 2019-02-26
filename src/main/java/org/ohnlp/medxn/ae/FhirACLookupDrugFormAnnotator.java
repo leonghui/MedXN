@@ -66,6 +66,10 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
             doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
             doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
             doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Inhaler", "Inh").toLowerCase());
+
+            // enrich keyword map with common synonyms
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ophthalmic", "Eye").toLowerCase());
+            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Otic", "Ear").toLowerCase());
         });
 
         SetMultimap<String, String> additionalKeywords = HashMultimap.create();
