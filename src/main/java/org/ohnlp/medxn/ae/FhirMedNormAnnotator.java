@@ -61,91 +61,171 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     @Override
     public void process(JCas jcas) {
 
-        jcas.getAnnotationIndex(LookupWindow.type).forEach(window -> {
-            jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
-                Drug drug = (Drug) drugAnnotation;
+        jcas.getAnnotationIndex(LookupWindow.type).forEach(window -> jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
+            Drug drug = (Drug) drugAnnotation;
 
-                Set<Medication> candidateMedications;
+            Set<Medication> candidateMedications;
 
-                if (drug.getBrand() != null) {
-                    Set<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
+            if (drug.getBrand() != null) {
+                Set<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
 
-                    candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
-                } else {
-                    candidateMedications = findGenericMedications(jcas, drug);
-                }
+                candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
+            } else {
+                candidateMedications = findGenericMedications(jcas, drug);
+            }
+
+            getContext().getLogger().log(Level.INFO, "Found " +
+                    candidateMedications.size() + " matches with the same ingredient(s) for drug: " +
+                    drug.getCoveredText()
+            );
+
+            FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
+
+            List<MedAttr> attributes = Streams.stream(attributeArray)
+                    .map(MedAttr.class::cast)
+                    .collect(ImmutableList.toImmutableList());
+
+            boolean hasFormOrRoute = attributes.stream()
+                    .map(MedAttr::getTag)
+                    .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.FORM) ||
+                            tag.contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE));
+
+            boolean hasStrength = attributes.stream()
+                    .map(MedAttr::getTag)
+                    .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
+
+            Set<Medication> initialResults = ImmutableSet.copyOf(candidateMedications);
+            Set<Medication> formRouteResults = ImmutableSet.copyOf(candidateMedications);
+            Set<Medication> strengthResults = ImmutableSet.copyOf(candidateMedications);
+            Set<Medication> combinedResults = ImmutableSet.copyOf(candidateMedications);
+
+            if (hasStrength) {
+                initialResults = initialResults.stream()
+                        .filter(medication ->
+                                medication.getIngredient().stream()
+                                        .allMatch(component ->
+                                                component.getStrength().getNumerator().getUnit() != null &&
+                                                        component.getStrength().getNumerator().getValue() != null
+                                        )
+                        )
+                        .collect(ImmutableSet.toImmutableSet());
+            } else {
+                initialResults = initialResults.stream()
+                        .filter(medication ->
+                                medication.getIngredient().stream()
+                                        .allMatch(component ->
+                                                component.getStrength().getNumerator().getUnit() == null &&
+                                                        component.getStrength().getNumerator().getValue() == null
+                                        )
+                        )
+                        .collect(ImmutableSet.toImmutableSet());
+            }
+
+            if (hasFormOrRoute) {
+                initialResults = initialResults.stream()
+                        .filter(Medication::hasForm)
+                        .collect(ImmutableSet.toImmutableSet());
+            } else {
+                initialResults = initialResults.stream()
+                        .filter(medication -> !medication.hasForm())
+                        .collect(ImmutableSet.toImmutableSet());
+            }
+
+            if (hasStrength) {
+                strengthResults = filterByStrength(jcas, drug, initialResults);
+            }
+
+            if (hasFormOrRoute) {
+                formRouteResults = filterByDoseFormOrRoute(jcas, drug, initialResults);
+            }
+
+            if (!strengthResults.isEmpty() && !formRouteResults.isEmpty()) {
+                combinedResults = Sets.intersection(strengthResults, formRouteResults);
 
                 getContext().getLogger().log(Level.INFO, "Found " +
-                        candidateMedications.size() + " matches with the same ingredient(s) for drug: " +
-                        drug.getCoveredText()
+                        combinedResults.size() + " matches with the same strength and dose form for drug: " +
+                        drug.getCoveredText() + " = " +
+                        FhirQueryUtils.getDisplayNameFromMedications(combinedResults)
                 );
+            }
 
-                if (drug.getAttrs() != null) {
+            Set<Set<Medication>> resultSets = ImmutableSet.of(
+                    initialResults, strengthResults, formRouteResults, combinedResults);
 
-                    List<MedAttr> attributes = Streams.stream(drug.getAttrs())
-                            .map(MedAttr.class::cast)
-                            .collect(ImmutableList.toImmutableList());
+            resultSets.stream()
+                    .filter(set -> !set.isEmpty())
+                    .min(Comparator.comparingInt(Set::size))
+                    .ifPresent(set -> {
+                        if (set.size() == 1) {
+                            Medication medication = set.iterator().next();
 
-                    boolean hasFormOrRoute = attributes.stream()
-                            .map(MedAttr::getTag)
-                            .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.FORM) ||
-                                    tag.contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE));
+                            drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
+                            drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
 
-                    boolean hasStrength = attributes.stream()
-                            .map(MedAttr::getTag)
-                            .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
+                            drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                            drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
 
-                    Set<Medication> initialResults = ImmutableSet.of();
-                    Set<Medication> formRouteResults = ImmutableSet.of();
-                    Set<Medication> strengthResults = ImmutableSet.of();
-                    Set<Medication> combinedResults = ImmutableSet.of();
+                            getContext().getLogger().log(Level.INFO, "Tagging " +
+                                    medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
+                                    drug.getCoveredText()
+                            );
 
-                    if (!hasStrength) {
-                        initialResults = candidateMedications.stream()
-                                .filter(medication  ->
-                                        medication.getIngredient().stream()
-                                                .allMatch(component ->
-                                                        component.getStrength().getNumerator().getUnit() == null &&
-                                                                component.getStrength().getNumerator().getValue() == null
-                                                )
-                                )
-                                .collect(ImmutableSet.toImmutableSet());
-                    }
+                        } else {
+                            List<Set<String>> listOfParents = set.stream()
+                                    .map(medication ->
+                                            allMedicationKnowledge.values().stream()
+                                                    .filter(medicationKnowledge ->
+                                                            medication.getCode().getCodingFirstRep().getCode().contentEquals(
+                                                                    medicationKnowledge.getCode().getCodingFirstRep().getCode()))
+                                                    .flatMap(medicationKnowledge ->
+                                                            medicationKnowledge.getAssociatedMedication()
+                                                                    .stream()
+                                                                    .map(Reference::getReference))
+                                                    .map(string -> string.split("/")[1].split("rxNorm-")[1])
+                                                    .collect(ImmutableSet.toImmutableSet())
+                                    )
+                                    .collect(ImmutableList.toImmutableList());
 
-                    if (!hasFormOrRoute) {
-                        initialResults = candidateMedications.stream()
-                                .filter(medication -> !medication.hasForm())
-                                .collect(ImmutableSet.toImmutableSet());
-                    }
+                            // Intersection of stream of sets into new set
+                            // https://stackoverflow.com/a/38266681
+                            Set<String> parentCodes = listOfParents.stream().skip(1)
+                                    .collect(() -> new HashSet<>(listOfParents.get(0)), Set::retainAll, Set::retainAll);
 
-                    if (hasStrength) {
-                        strengthResults = filterByStrength(jcas, drug, initialResults);
-                    }
+                            if (parentCodes.size() >= 1) {
 
-                    if (hasFormOrRoute) {
-                        formRouteResults = filterByDoseFormOrRoute(jcas, drug, initialResults);
-                    }
+                                Comparator<Medication> byDisplayLength = Comparator.comparingInt((Medication m) ->
+                                        m.getCode().getCodingFirstRep().getDisplay().length());
 
-                    if (!strengthResults.isEmpty() && !formRouteResults.isEmpty()) {
-                        combinedResults = Sets.intersection(strengthResults, formRouteResults);
-                    }
+                                FhirQueryUtils
+                                        .getMedicationsFromRxCui(allMedications, parentCodes)
+                                        .stream()
+                                        .min(byDisplayLength)
+                                        .ifPresent(parentMedication -> {
 
-                    Set<Set<Medication>> resultSets = ImmutableSet.of(strengthResults, formRouteResults, combinedResults);
 
-                    resultSets.stream()
-                            .filter(set -> !set.isEmpty())
-                            .min(Comparator.comparingInt(Set::size))
-                            .ifPresent(set -> {
-                                if (set.size() == 1) {
-                                    Medication medication = set.iterator().next();
+                                            drug.setNormRxName(parentMedication.getCode().getCodingFirstRep().getDisplay());
+                                            drug.setNormRxCui(parentMedication.getCode().getCodingFirstRep().getCode());
 
-                                    drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                                    drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-                                }
-                            });
-                }
-            });
-        });
+                                            drug.setNormRxName2(parentMedication.getCode().getCodingFirstRep().getDisplay());
+                                            drug.setNormRxCui2(parentMedication.getCode().getCodingFirstRep().getCode());
+
+                                            getContext().getLogger().log(Level.INFO, "Tagging parent " +
+                                                    parentMedication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
+                                                    drug.getCoveredText()
+                                            );
+                                        });
+
+                            } else {
+
+                                getContext().getLogger().log(Level.INFO, "Remaining matches for drug: " +
+                                        drug.getCoveredText() + " : " +
+                                        FhirQueryUtils.getDisplayNameFromMedications(set)
+                                );
+                            }
+                        }
+                    });
+
+        }));
     }
 
     @SuppressWarnings("UnstableApiUsage")
