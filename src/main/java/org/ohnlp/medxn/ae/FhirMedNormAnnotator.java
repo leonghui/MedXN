@@ -170,18 +170,16 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
                         } else {
                             List<Set<String>> listOfParents = set.stream()
-                                    .map(medication ->
-                                            allMedicationKnowledge.values().stream()
-                                                    .filter(medicationKnowledge ->
-                                                            medication.getCode().getCodingFirstRep().getCode().contentEquals(
-                                                                    medicationKnowledge.getCode().getCodingFirstRep().getCode()))
-                                                    .flatMap(medicationKnowledge ->
-                                                            medicationKnowledge.getAssociatedMedication()
-                                                                    .stream()
-                                                                    .map(Reference::getReference))
+                                    .map(Medication::getCode)
+                                    .map(CodeableConcept::getCodingFirstRep)
+                                    .map(Coding::getCode)
+                                    .map(code ->
+                                            allMedicationKnowledge.get(code)
+                                                    .getAssociatedMedication()
+                                                    .stream()
+                                                    .map(Reference::getReference)
                                                     .map(string -> string.split("/")[1].split("rxNorm-")[1])
-                                                    .collect(ImmutableSet.toImmutableSet())
-                                    )
+                                                    .collect(ImmutableSet.toImmutableSet()))
                                     .collect(ImmutableList.toImmutableList());
 
                             // Intersection of stream of sets into new set
