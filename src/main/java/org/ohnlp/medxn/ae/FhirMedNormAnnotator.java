@@ -19,7 +19,6 @@ package org.ohnlp.medxn.ae;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
-import info.debatty.java.stringsimilarity.Levenshtein;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
@@ -29,7 +28,6 @@ import org.apache.uima.util.Level;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationKnowledge;
 import org.hl7.fhir.r4.model.Reference;
-import org.hl7.fhir.r4.model.StringType;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -38,7 +36,6 @@ import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -47,7 +44,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private List<Medication> allMedications;
     private List<MedicationKnowledge> allMedicationKnowledge;
     private FhirQueryClient queryClient;
-    private final Levenshtein levenshtein = new Levenshtein();
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -66,31 +62,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     public void process(JCas jcas) {
 
         jcas.getAnnotationIndex(LookupWindow.type).forEach(window -> {
-
-            Comparator<String> byLevenshteinDistance = Comparator.comparingDouble(s ->
-                    levenshtein.distance(s, window.getCoveredText()));
-
-            Comparator<Medication> byLevenshteinDistanceForMedications = (m1, m2) -> {
-
-                java.util.function.Function<Medication, String> getClosestSynonym = (medication ->
-                        allMedicationKnowledge.stream()
-                                .filter(medicationKnowledge ->
-                                        medicationKnowledge.getCode().getCodingFirstRep().getCode().contentEquals(
-                                                medication.getCode().getCodingFirstRep().getCode()
-                                        ))
-                                .findFirst()
-                                .orElse(new MedicationKnowledge())
-                                .getSynonym().stream()
-                                .map(StringType::toString)
-                                .min(byLevenshteinDistance)
-                                .orElse(""));
-
-                return Double.compare(
-                        levenshtein.distance(getClosestSynonym.apply(m1), window.getCoveredText()),
-                        levenshtein.distance(getClosestSynonym.apply(m2), window.getCoveredText())
-                );
-            };
-
             jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
                 Drug drug = (Drug) drugAnnotation;
 
@@ -133,18 +104,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
                             drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
                             drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-                        } else {
-                            results.stream()
-                                    .min(byLevenshteinDistanceForMedications)
-                                    .ifPresent(finalMed -> {
-                                        drug.setNormRxName2(finalMed.getCode().getCodingFirstRep().getDisplay());
-                                        drug.setNormRxCui2(finalMed.getCode().getCodingFirstRep().getCode());
-
-                                        getContext().getLogger().log(Level.INFO, "Using Levenshtein distance: " +
-                                                finalMed.getCode().getCodingFirstRep().getCode() +
-                                                " for drug: " + drug.getCoveredText()
-                                        );
-                                    });
                         }
                     }
                 }
