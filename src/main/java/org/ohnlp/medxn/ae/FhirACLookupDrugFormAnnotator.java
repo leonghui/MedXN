@@ -33,6 +33,7 @@ import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -111,12 +112,12 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
 
             if (drug.getAttrs() != null) {
 
-                ImmutableList<MedAttr> forms = Streams.stream(drug.getAttrs())
+                List<MedAttr> forms = Streams.stream(drug.getAttrs())
                         .map(MedAttr.class::cast)
                         .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.FORM))
                         .collect(ImmutableList.toImmutableList());
 
-                ImmutableList<MedAttr> routes = Streams.stream(drug.getAttrs())
+                List<MedAttr> routes = Streams.stream(drug.getAttrs())
                         .map(MedAttr.class::cast)
                         .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE))
                         .collect(ImmutableList.toImmutableList());

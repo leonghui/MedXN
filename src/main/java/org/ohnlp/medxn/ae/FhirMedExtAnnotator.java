@@ -59,11 +59,11 @@ import java.util.stream.Stream;
 
 public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
-    private ImmutableList<MedAttr> attributes;
-    private ImmutableList<Sentence> sortedSentences;
-    private ImmutableList<MedAttr> formsRoutesFrequencies;
-    private ImmutableList<Medication> allMedications;
-    private ImmutableList<String> falseMedications;
+    private List<MedAttr> attributes;
+    private List<Sentence> sortedSentences;
+    private List<MedAttr> formsRoutesFrequencies;
+    private List<Medication> allMedications;
+    private List<String> falseMedications;
 
     @SuppressWarnings("UnstableApiUsage")
     @Override
@@ -120,7 +120,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     private void removeOverlappingDrugs(JCas jcas) {
-        ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
+        List<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
         // remove drugs that overlap with attributes
         drugs.stream()
@@ -135,7 +135,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     // Remove false drugs using Mayo Clinic's falseMedDict.txt
     @SuppressWarnings("UnstableApiUsage")
     private void removeFalseDrugs(JCas jcas) {
-        ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
+        List<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
         drugs.stream()
                 .filter(drug ->
@@ -183,7 +183,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         AtomicInteger count = new AtomicInteger(0);
         AtomicBoolean drugsModified = new AtomicBoolean(false);
 
-        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+        List<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
                 jcas.getAnnotationIndex(Drug.type)
         );
@@ -252,7 +252,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
     private void createLookupWindows(JCas jcas) {
         // always generate a new instance of drug list because the index has been updated
-        ImmutableList<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
+        List<Drug> sortedDrugs = ImmutableList.sortedCopyOf(
                 Comparator.comparingInt(Drug::getBegin).thenComparingInt(Drug::getEnd),
                 jcas.getAnnotationIndex(Drug.type)
         );
@@ -356,7 +356,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private boolean compareIngredients(Drug sourceDrug, Drug targetDrug) {
         boolean canBeMerged = false;
 
-        ImmutableList<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
+        List<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
 
         Set<Medication> targetMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
 
@@ -365,7 +365,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
 
         // don't add ingredients that are already found in the drug
         if (targetDrug.getIngredients() != null) {
-            ImmutableList<String> targetIngredients = Streams.stream(targetDrug.getIngredients())
+            List<String> targetIngredients = Streams.stream(targetDrug.getIngredients())
                     .map(Ingredient.class::cast)
                     .map(Ingredient::getItem)
                     .collect(ImmutableList.toImmutableList());
@@ -374,7 +374,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         }
 
         if (sourceDrug.getIngredients() != null) {
-            ImmutableList<String> sourceIngredients = Streams.stream(sourceDrug.getIngredients())
+            List<String> sourceIngredients = Streams.stream(sourceDrug.getIngredients())
                     .map(Ingredient.class::cast)
                     .map(Ingredient::getItem)
                     .collect(ImmutableList.toImmutableList());
@@ -403,7 +403,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         mergedDrug.setForm(form);
         mergedDrug.setBrand(brand);
 
-        ImmutableSet<FeatureStructure> mergedAttributes = null;
+        Set<FeatureStructure> mergedAttributes = null;
 
         if (sourceDrug.getAttrs() != null && targetDrug.getAttrs() != null) {
             mergedAttributes = Stream.concat(
@@ -427,7 +427,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
             mergedDrug.setAttrs(medAttrs);
         }
 
-        ImmutableSet<FeatureStructure> mergedIngredients = null;
+        Set<FeatureStructure> mergedIngredients = null;
 
         if (sourceDrug.getIngredients() != null && targetDrug.getIngredients() != null) {
             mergedIngredients = Stream.concat(

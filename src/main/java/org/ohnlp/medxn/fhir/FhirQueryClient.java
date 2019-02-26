@@ -49,8 +49,8 @@ public class FhirQueryClient {
         return new FhirQueryClient(url, timeout);
     }
 
-    private ImmutableList<? extends Resource> getAllResources(String className) {
-        ImmutableList<? extends Resource> resources = null;
+    private List<? extends Resource> getAllResources(String className) {
+        List<? extends Resource> resources = null;
 
         Path path = getCachedFilePath(className);
 
@@ -84,7 +84,7 @@ public class FhirQueryClient {
 
     }
 
-    private ImmutableList<? extends Resource> queryResources(String className) {
+    private List<? extends Resource> queryResources(String className) {
         List<Resource> resources = new ArrayList<>();
 
         try {
@@ -118,10 +118,10 @@ public class FhirQueryClient {
 
 
     @SuppressWarnings("UnstableApiUsage")
-    private ImmutableList<? extends Resource> readCachedResources(String className) {
+    private List<? extends Resource> readCachedResources(String className) {
         Path path = getCachedFilePath(className);
 
-        ImmutableList<Resource> resources = null;
+        List<Resource> resources = null;
 
         try {
 
@@ -143,7 +143,7 @@ public class FhirQueryClient {
         return resources;
     }
 
-    private void writeCachedResources(String className, ImmutableList<? extends Resource> resources) {
+    private void writeCachedResources(String className, List<? extends Resource> resources) {
 
         Path path = getCachedFilePath(className);
 
@@ -166,18 +166,18 @@ public class FhirQueryClient {
     }
 
     @SuppressWarnings("unchecked")
-    public ImmutableList<Medication> getAllMedications() {
-        return (ImmutableList<Medication>) getAllResources("Medication");
+    public List<Medication> getAllMedications() {
+        return (List<Medication>) getAllResources("Medication");
     }
 
     @SuppressWarnings("unchecked")
-    public ImmutableList<MedicationKnowledge> getAllMedicationKnowledge() {
-        return (ImmutableList<MedicationKnowledge>) getAllResources("MedicationKnowledge");
+    public List<MedicationKnowledge> getAllMedicationKnowledge() {
+        return (List<MedicationKnowledge>) getAllResources("MedicationKnowledge");
     }
 
     @SuppressWarnings("unchecked")
-    public ImmutableList<Substance> getAllSubstances() {
-        return (ImmutableList<Substance>) getAllResources("Substance");
+    public List<Substance> getAllSubstances() {
+        return (List<Substance>) getAllResources("Substance");
     }
 
     public String getServerUrl() {

@@ -45,6 +45,7 @@ import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.typesystem.type.syntax.WordToken;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -185,7 +186,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
             });
 
-            ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
+            List<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
             // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
             Streams.stream(jcas.getAnnotationIndex(WordToken.type).subiterator(sentence))

@@ -19,11 +19,12 @@ package org.ohnlp.medxn.fhir;
 import com.google.common.collect.*;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.jcas.tcas.Annotation;
-import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Medication;
+import org.hl7.fhir.r4.model.Reference;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class FhirQueryUtils {
@@ -41,13 +42,13 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableSet<String> getAllRxCuisFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
+    public static Set<String> getAllRxCuisFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
         return getKeyStreamFromKeywordMap(keywordMap, keyword)
                 .collect(ImmutableSet.toImmutableSet());
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableSet<Medication> getMedicationsFromRxCui(Collection<Medication> allMedications, Collection<String> rxCuis) {
+    public static Set<Medication> getMedicationsFromRxCui(Collection<Medication> allMedications, Collection<String> rxCuis) {
         return allMedications.parallelStream()
                 .filter(medication -> {
                     Coding medicationCoding = medication.getCode().getCodingFirstRep();
@@ -57,7 +58,7 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableList<String> getIngredientIdsFromMedication(Medication medication) {
+    public static List<String> getIngredientIdsFromMedication(Medication medication) {
         return medication.getIngredient().stream()
                 .map(Medication.MedicationIngredientComponent::getItem)
                 .filter(Objects::nonNull)
@@ -69,7 +70,7 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableList<String> getIngredientIdsFromMedications(Collection<Medication> medications) {
+    public static List<String> getIngredientIdsFromMedications(Collection<Medication> medications) {
         return medications.parallelStream()
                 .flatMap(medication -> medication.getIngredient().stream()
                         .map(Medication.MedicationIngredientComponent::getItem)
@@ -82,14 +83,14 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableList<String> getCoveredTextFromAnnotations(Collection<? extends Annotation> annotations) {
+    public static List<String> getCoveredTextFromAnnotations(Collection<? extends Annotation> annotations) {
         return annotations.stream()
                 .map(Annotation::getCoveredText)
                 .collect(ImmutableList.toImmutableList());
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static ImmutableMap<String, String> getDosageFormMap(FhirQueryClient queryClient) {
+    public static Map<String, String> getDosageFormMap(FhirQueryClient queryClient) {
 
         return queryClient.getAllMedications().parallelStream()
                 .map(Medication::getForm)

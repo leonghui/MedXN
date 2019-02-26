@@ -30,6 +30,7 @@ import org.ohnlp.medxn.type.Ingredient;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
@@ -50,7 +51,7 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
         jcas.getAnnotationIndex(Drug.type).forEach(drugAnnotation -> {
             Drug drug = (Drug) drugAnnotation;
 
-            ImmutableList<Ingredient> sortedIngredients = ImmutableList.of();
+            List<Ingredient> sortedIngredients = ImmutableList.of();
 
             if (drug.getIngredients() != null) {
                 sortedIngredients = Streams.stream(drug.getIngredients())
@@ -60,7 +61,7 @@ public class FhirMedStrengthAnnotator extends JCasAnnotator_ImplBase {
                         .collect(ImmutableList.toImmutableList());
             }
 
-            ImmutableList<MedAttr> sortedStrengths = ImmutableList.of();
+            List<MedAttr> sortedStrengths = ImmutableList.of();
 
             if (drug.getAttrs() != null) {
                 sortedStrengths = Streams.stream(drug.getAttrs())

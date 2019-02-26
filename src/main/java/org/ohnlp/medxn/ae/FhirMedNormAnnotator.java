@@ -39,11 +39,13 @@ import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
-    private ImmutableList<Medication> allMedications;
-    private ImmutableList<MedicationKnowledge> allMedicationKnowledge;
+    private List<Medication> allMedications;
+    private List<MedicationKnowledge> allMedicationKnowledge;
     private FhirQueryClient queryClient;
     private final Levenshtein levenshtein = new Levenshtein();
 
@@ -92,10 +94,10 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             jcas.getAnnotationIndex(Drug.type).subiterator(window).forEachRemaining(drugAnnotation -> {
                 Drug drug = (Drug) drugAnnotation;
 
-                ImmutableSet<Medication> candidateMedications;
+                Set<Medication> candidateMedications;
 
                 if (drug.getBrand() != null) {
-                    ImmutableSet<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
+                    Set<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
 
                     candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
                 } else {
@@ -107,7 +109,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         drug.getCoveredText()
                 );
 
-                ImmutableSet<Medication> results = candidateMedications;
+                Set<Medication> results = candidateMedications;
 
                 if (results.size() == 1) {
                     Medication medication = results.iterator().next();
@@ -151,11 +153,11 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private ImmutableSet<Medication> findGenericMedications(JCas jcas, Drug drug) {
+    private Set<Medication> findGenericMedications(JCas jcas, Drug drug) {
 
         FSArray ingredientArray = Optional.ofNullable(drug.getIngredients()).orElse(new FSArray(jcas, 0));
 
-        ImmutableList<String> annotationIngredientIds = Streams.stream(ingredientArray)
+        List<String> annotationIngredientIds = Streams.stream(ingredientArray)
                 .map(Ingredient.class::cast)
                 .map(Ingredient::getItem)
                 .collect(ImmutableList.toImmutableList());
@@ -167,7 +169,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         queryClient.getServerUrl() + "StructureDefinition/brand"
                 ).isEmpty())
                 .filter(medication -> {
-                    ImmutableList<String> fhirIngredients = FhirQueryUtils.getIngredientIdsFromMedication(medication);
+                    List<String> fhirIngredients = FhirQueryUtils.getIngredientIdsFromMedication(medication);
 
                     return fhirIngredients.size() == annotationIngredientIds.size() &&
                             fhirIngredients.containsAll(annotationIngredientIds);
@@ -176,12 +178,12 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private ImmutableSet<Medication> filterByDoseFormOrRoute(JCas jcas, Drug drug, ImmutableSet<Medication> medications) {
+    private Set<Medication> filterByDoseFormOrRoute(JCas jcas, Drug drug, Set<Medication> medications) {
 
         // CRITERION 2a: Include only medications with the same dose form
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
-        ImmutableSet<Medication> fhirMedicationsDoseForm = medications.stream()
+        Set<Medication> fhirMedicationsDoseForm = medications.stream()
                 .filter(medication -> medication.getForm().getCodingFirstRep().getCode() != null)
                 .filter(medication ->
                         doseForm.contentEquals(medication
@@ -200,13 +202,13 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         // CRITERION 2b: Include only medications with the same route, if dose form is not found or unavailable
         FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
 
-        ImmutableList<MedAttr> routes =
+        List<MedAttr> routes =
                 Streams.stream(attributeArray)
                         .map(MedAttr.class::cast)
                         .filter(attribute -> attribute.getTag().contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE))
                         .collect(ImmutableList.toImmutableList());
 
-        ImmutableSet<Medication> fhirMedicationsRoute = routes.stream()
+        Set<Medication> fhirMedicationsRoute = routes.stream()
                 .flatMap(route -> medications.stream()
                         .filter(medication -> medication.getForm().getCodingFirstRep().getCode() != null)
                         .filter(medication -> {
@@ -263,17 +265,17 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private ImmutableSet<Medication> filterByStrength(JCas jcas, Drug drug, ImmutableSet<Medication> medications) {
+    private Set<Medication> filterByStrength(JCas jcas, Drug drug, Set<Medication> medications) {
 
         FSArray ingredientArray = Optional.ofNullable(drug.getIngredients()).orElse(new FSArray(jcas, 0));
 
-        ImmutableList<IngredientCommons> annotationIngredients = Streams.stream(ingredientArray)
+        List<IngredientCommons> annotationIngredients = Streams.stream(ingredientArray)
                 .map(Ingredient.class::cast)
                 .map(IngredientCommons::new)
                 .collect(ImmutableList.toImmutableList());
 
         // CRITERION 3a: Include only medications with the same ingredient-strength pairs
-        ImmutableSet<Medication> fhirMedicationsStrength = medications.stream()
+        Set<Medication> fhirMedicationsStrength = medications.stream()
                 .filter(medication ->
                         medication.getIngredient().stream()
                                 .map(Medication.MedicationIngredientComponent.class::cast)
@@ -297,7 +299,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
 
         // CRITERION 3b: Include only medications with the same strengths, if ingredient is not found
-        ImmutableSet<Medication> fhirMedicationsAnonStrength = medications.stream()
+        Set<Medication> fhirMedicationsAnonStrength = medications.stream()
                 .filter(medication ->
                         medication.getIngredient().stream()
                                 .map(Medication.MedicationIngredientComponent.class::cast)
