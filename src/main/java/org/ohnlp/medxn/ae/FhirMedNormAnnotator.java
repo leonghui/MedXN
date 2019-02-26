@@ -39,8 +39,8 @@ import java.util.*;
 
 @SuppressWarnings("UnstableApiUsage")
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
-    private List<Medication> allMedications;
-    private List<MedicationKnowledge> allMedicationKnowledge;
+    private Map<String, Medication> allMedications;
+    private Map<String, MedicationKnowledge> allMedicationKnowledge;
     private String url;
 
     @Override
@@ -54,6 +54,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         allMedications = queryClient.getAllMedications();
         allMedicationKnowledge = queryClient.getAllMedicationKnowledge();
+
+        queryClient.destroy();
     }
 
     @Override
@@ -158,9 +160,9 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         // CRITERION 1: Consider all medications with the same ingredients
 
-        return allMedications.parallelStream()
+        return allMedications.values().parallelStream()
                 .filter(medication -> medication.getExtensionsByUrl(
-                         url + "StructureDefinition/brand"
+                        url + "StructureDefinition/brand"
                 ).isEmpty())
                 .filter(medication -> {
                     List<String> fhirIngredients = FhirQueryUtils.getIngredientIdsFromMedication(medication);

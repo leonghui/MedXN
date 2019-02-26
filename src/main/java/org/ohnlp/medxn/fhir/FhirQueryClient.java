@@ -21,6 +21,7 @@ import ca.uhn.fhir.context.PerformanceOptionsEnum;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.hl7.fhir.r4.model.*;
 
 import java.io.BufferedReader;
@@ -32,6 +33,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class FhirQueryClient {
     private FhirContext context = FhirContext.forR4();
@@ -170,19 +172,34 @@ public class FhirQueryClient {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    public List<Medication> getAllMedications() {
-        return (List<Medication>) getAllResources("Medication");
+    @SuppressWarnings("UnstableApiUsage")
+    public Map<String, Medication> getAllMedications() {
+        return getAllResources("Medication").stream()
+                .map(Medication.class::cast)
+                .collect(ImmutableMap.toImmutableMap(
+                        medication -> medication.getCode().getCodingFirstRep().getDisplay(),
+                        medication -> medication
+                ));
     }
 
-    @SuppressWarnings("unchecked")
-    public List<MedicationKnowledge> getAllMedicationKnowledge() {
-        return (List<MedicationKnowledge>) getAllResources("MedicationKnowledge");
+    @SuppressWarnings("UnstableApiUsage")
+    public Map<String, MedicationKnowledge> getAllMedicationKnowledge() {
+        return getAllResources("MedicationKnowledge").stream()
+                .map(MedicationKnowledge.class::cast)
+                .collect(ImmutableMap.toImmutableMap(
+                        medicationKnowledge -> medicationKnowledge.getCode().getCodingFirstRep().getDisplay(),
+                        medicationKnowledge -> medicationKnowledge
+                ));
     }
 
-    @SuppressWarnings("unchecked")
-    public List<Substance> getAllSubstances() {
-        return (List<Substance>) getAllResources("Substance");
+    @SuppressWarnings("UnstableApiUsage")
+    public Map<String, Substance> getAllSubstances() {
+        return getAllResources("Substance").stream()
+                .map(Substance.class::cast)
+                .collect(ImmutableMap.toImmutableMap(
+                        substance -> substance.getCode().getCodingFirstRep().getDisplay(),
+                        substance -> substance
+                ));
     }
 
     private Path getCachedFilePath(String className) {

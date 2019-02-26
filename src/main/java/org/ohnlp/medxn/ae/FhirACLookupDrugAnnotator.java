@@ -36,7 +36,6 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
-import org.hl7.fhir.r4.model.Coding;
 import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
@@ -70,15 +69,13 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient
                 .getAllSubstances()
-                .forEach(substance -> {
-                    Coding coding = substance.getCode().getCodingFirstRep();
-
-                    ingredients.keywordMap.put(coding.getCode(),
-                            coding.getDisplay());
+                .forEach((code, substance) -> {
+                    ingredients.keywordMap.put(code,
+                            substance.getCode().getCodingFirstRep().getDisplay());
 
                     substance.getExtensionsByUrl(url + "StructureDefinition/synonym")
                             .forEach(synonymExtension ->
-                                    ingredients.keywordMap.put(coding.getCode(),
+                                    ingredients.keywordMap.put(code,
                                             synonymExtension.getValue().toString()
                                                     .replaceAll(punctuationOrWhitespace.toString(), " ")
                                                     .replaceAll(doublePunctOrWhitespace.toString(), " ")
@@ -99,28 +96,26 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
         queryClient
                 .getAllMedications()
-                .forEach(medication -> medication
-                        .getExtensionsByUrl(url + "StructureDefinition/brand")
-                        .stream()
-                        .findFirst()
-                        .ifPresent(brandExtension -> {
-                            Coding productCoding = medication.getCode().getCodingFirstRep();
+                .forEach((code, medication) ->
+                        medication.getExtensionsByUrl(url + "StructureDefinition/brand")
+                                .stream()
+                                .findFirst()
+                                .ifPresent(brandExtension -> {
+                                    String brand = brandExtension.getValue().toString();
 
-                            String brand = brandExtension.getValue().toString();
+                                    Matcher brandWithMultipleStrength = digitsSlashDigits.matcher(brand);
 
-                            Matcher brandWithMultipleStrength = digitsSlashDigits.matcher(brand);
+                                    // enrich keyword map with trade name root without multiple strengths
+                                    if (brandWithMultipleStrength.find()) {
+                                        brands.keywordMap.put(code,
+                                                brandWithMultipleStrength.replaceAll(""));
+                                    }
 
-                            // enrich keyword map with trade name root without multiple strengths
-                            if (brandWithMultipleStrength.find()) {
-                                brands.keywordMap.put(productCoding.getCode(),
-                                        brandWithMultipleStrength.replaceAll(""));
-                            }
-
-                            brands.keywordMap.put(productCoding.getCode(),
-                                    brand.replaceAll(punctuationOrWhitespace.toString(), " ")
-                                            .replaceAll(doublePunctOrWhitespace.toString(), " ")
-                            );
-                        })
+                                    brands.keywordMap.put(code,
+                                            brand.replaceAll(punctuationOrWhitespace.toString(), " ")
+                                                    .replaceAll(doublePunctOrWhitespace.toString(), " ")
+                                    );
+                                })
                 );
 
         brands.trie = Trie.builder()
@@ -204,11 +199,11 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                             )
                             .findFirst()
                             .ifPresent(keyword -> {
-                                String rxCui = FhirQueryUtils
+                                String code = FhirQueryUtils
                                         .getRxCuiFromKeywordMap(ingredients.keywordMap, keyword);
 
                                 createAnnotationsForIngredient(
-                                        jcas, (Sentence) sentence, wordToken.getBegin(), wordToken.getEnd(), rxCui);
+                                        jcas, (Sentence) sentence, wordToken.getBegin(), wordToken.getEnd(), code);
 
                                 getContext().getLogger().log(
                                         Level.INFO, "Found ingredient via fuzzy matching: " +
@@ -219,19 +214,19 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
     }
 
-    private void createAnnotationsForIngredient(JCas jcas, Sentence sentence, int begin, int end, String rxCui) {
+    private void createAnnotationsForIngredient(JCas jcas, Sentence sentence, int begin, int end, String code) {
         Ingredient ingredient = new Ingredient(jcas, begin, end);
 
-        ingredient.setItem(rxCui);
+        ingredient.setItem(code);
         ingredient.addToIndexes(jcas);
 
         ConceptMention concept = new ConceptMention(jcas, begin, end);
 
-        String ingredientTerm = ingredients.keywordMap.get(rxCui)
+        String ingredientTerm = ingredients.keywordMap.get(code)
                 .stream().findFirst().orElse("");
 
         concept.setNormTarget(ingredientTerm);
-        concept.setSemGroup(rxCui + "::IN");
+        concept.setSemGroup(code + "::IN");
         concept.setSentence(sentence);
         concept.addToIndexes(jcas);
 

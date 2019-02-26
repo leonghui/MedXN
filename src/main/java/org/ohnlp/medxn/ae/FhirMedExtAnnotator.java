@@ -62,7 +62,7 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private List<MedAttr> attributes;
     private List<Sentence> sortedSentences;
     private List<MedAttr> formsRoutesFrequencies;
-    private List<Medication> allMedications;
+    private Map<String, Medication> allMedications;
     private List<String> falseMedications;
 
     @SuppressWarnings("UnstableApiUsage")
@@ -133,7 +133,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     }
 
     // Remove false drugs using Mayo Clinic's falseMedDict.txt
-    @SuppressWarnings("UnstableApiUsage")
     private void removeFalseDrugs(JCas jcas) {
         List<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 

@@ -48,12 +48,9 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static Set<Medication> getMedicationsFromRxCui(Collection<Medication> allMedications, Collection<String> rxCuis) {
-        return allMedications.parallelStream()
-                .filter(medication -> {
-                    Coding medicationCoding = medication.getCode().getCodingFirstRep();
-                    return rxCuis.contains(medicationCoding.getCode());
-                })
+    public static Set<Medication> getMedicationsFromRxCui(Map<String, Medication> allMedications, Collection<String> rxCuis) {
+        return rxCuis.stream()
+                .map(allMedications::get)
                 .collect(ImmutableSet.toImmutableSet());
     }
 
@@ -101,7 +98,7 @@ public class FhirQueryUtils {
     @SuppressWarnings("UnstableApiUsage")
     public static Map<String, String> getDosageFormMap(FhirQueryClient queryClient) {
 
-        return queryClient.getAllMedications().parallelStream()
+        return queryClient.getAllMedications().values().parallelStream()
                 .map(Medication::getForm)
                 .map(CodeableConcept::getCodingFirstRep)
                 .filter(coding -> coding.getCode() != null)
