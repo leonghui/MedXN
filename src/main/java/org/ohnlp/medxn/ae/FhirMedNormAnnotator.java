@@ -16,9 +16,7 @@
 
 package org.ohnlp.medxn.ae;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
+import com.google.common.collect.*;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.jcas.JCas;
@@ -38,11 +36,9 @@ import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
+@SuppressWarnings("UnstableApiUsage")
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private List<Medication> allMedications;
     private List<MedicationKnowledge> allMedicationKnowledge;
@@ -83,32 +79,69 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         drug.getCoveredText()
                 );
 
-                Set<Medication> results = candidateMedications;
+                if (drug.getAttrs() != null) {
 
-                if (results.size() == 1) {
-                    Medication medication = results.iterator().next();
+                    List<MedAttr> attributes = Streams.stream(drug.getAttrs())
+                            .map(MedAttr.class::cast)
+                            .collect(ImmutableList.toImmutableList());
 
-                    drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                    drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-                } else {
-                    results = filterByDoseFormOrRoute(jcas, drug, candidateMedications);
+                    boolean hasFormOrRoute = attributes.stream()
+                            .map(MedAttr::getTag)
+                            .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.FORM) ||
+                                    tag.contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE));
 
-                    // TODO introduce recursion later
-                    if (results.size() == 1) {
-                        Medication medication = results.iterator().next();
+                    boolean hasStrength = attributes.stream()
+                            .map(MedAttr::getTag)
+                            .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
 
-                        drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                        drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-                    } else {
-                        results = filterByStrength(jcas, drug, results);
+                    Set<Medication> initialResults = ImmutableSet.of();
+                    Set<Medication> formRouteResults = ImmutableSet.of();
+                    Set<Medication> strengthResults = ImmutableSet.of();
+                    Set<Medication> combinedResults = ImmutableSet.of();
 
-                        if (results.size() == 1) {
-                            Medication medication = results.iterator().next();
-
-                            drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                            drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
-                        }
+                    if (!hasStrength) {
+                        initialResults = candidateMedications.stream()
+                                .filter(medication  ->
+                                        medication.getIngredient().stream()
+                                                .allMatch(component ->
+                                                        component.getStrength().getNumerator().getUnit() == null &&
+                                                                component.getStrength().getNumerator().getValue() == null
+                                                )
+                                )
+                                .collect(ImmutableSet.toImmutableSet());
                     }
+
+                    if (!hasFormOrRoute) {
+                        initialResults = candidateMedications.stream()
+                                .filter(medication -> !medication.hasForm())
+                                .collect(ImmutableSet.toImmutableSet());
+                    }
+
+                    if (hasStrength) {
+                        strengthResults = filterByStrength(jcas, drug, initialResults);
+                    }
+
+                    if (hasFormOrRoute) {
+                        formRouteResults = filterByDoseFormOrRoute(jcas, drug, initialResults);
+                    }
+
+                    if (!strengthResults.isEmpty() && !formRouteResults.isEmpty()) {
+                        combinedResults = Sets.intersection(strengthResults, formRouteResults);
+                    }
+
+                    Set<Set<Medication>> resultSets = ImmutableSet.of(strengthResults, formRouteResults, combinedResults);
+
+                    resultSets.stream()
+                            .filter(set -> !set.isEmpty())
+                            .min(Comparator.comparingInt(Set::size))
+                            .ifPresent(set -> {
+                                if (set.size() == 1) {
+                                    Medication medication = set.iterator().next();
+
+                                    drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                                    drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                                }
+                            });
                 }
             });
         });
@@ -146,7 +179,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
         Set<Medication> fhirMedicationsDoseForm = medications.stream()
-                .filter(medication -> medication.getForm().getCodingFirstRep().getCode() != null)
                 .filter(medication ->
                         doseForm.contentEquals(medication
                                 .getForm()
@@ -178,7 +210,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         Set<Medication> fhirMedicationsRoute = routes.stream()
                 .flatMap(route -> medications.stream()
-                        .filter(medication -> medication.getForm().getCodingFirstRep().getCode() != null)
                         .filter(medication -> {
                             String routeNormText;
 
@@ -270,7 +301,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         .collect(ImmutableSet.toImmutableSet())
 
         );
-
 
         // CRITERION 3b: Include only medications with the same strengths, if ingredient is not found
         Set<Medication> fhirMedicationsAnonStrength = medications.stream()
