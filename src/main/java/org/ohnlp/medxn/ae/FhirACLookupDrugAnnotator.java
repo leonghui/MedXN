@@ -26,8 +26,9 @@
 
 package org.ohnlp.medxn.ae;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import info.debatty.java.stringsimilarity.Damerau;
-import org.ahocorasick.trie.Token;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
@@ -41,7 +42,7 @@ import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
-import org.ohnlp.typesystem.type.textspan.Segment;
+import org.ohnlp.typesystem.type.syntax.WordToken;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
 import java.util.regex.Matcher;
@@ -135,109 +136,85 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         );
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public void process(JCas jcas) {
-        jcas.getAnnotationIndex(Segment.type).forEach(segment ->
-                jcas.getAnnotationIndex(Sentence.type).subiterator(segment).forEachRemaining(sentence -> {
+        jcas.getAnnotationIndex(Sentence.type).forEach(sentence -> {
 
-                    // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
-                    String sentText = sentence.getCoveredText().toLowerCase();
+            // note that org.ahocorasick.ahocorasick does not support multiple whitespaces between words
+            String sentText = sentence.getCoveredText().toLowerCase();
 
-                    Matcher httpEntitiesMatcher = htmlEntities.matcher(sentText);
+            Matcher httpEntitiesMatcher = htmlEntities.matcher(sentText);
 
-                    while (httpEntitiesMatcher.find()) {
-                        String substringToRemove = httpEntitiesMatcher.group();
+            while (httpEntitiesMatcher.find()) {
+                String substringToRemove = httpEntitiesMatcher.group();
 
-                        sentText = httpEntitiesMatcher.replaceFirst(
-                                new String(new char[substringToRemove.length()]).replace("\0", " ")
-                        );
+                sentText = httpEntitiesMatcher.replaceFirst(
+                        new String(new char[substringToRemove.length()]).replace("\0", " ")
+                );
 
-                        httpEntitiesMatcher.reset(sentText);
-                    }
+                httpEntitiesMatcher.reset(sentText);
+            }
 
-                    // replace single punctuations and whitespaces with a single space
-                    sentText = sentText.replaceAll(punctuationOrWhitespace.toString(), " ");
+            // replace single punctuations and whitespaces with a single space
+            sentText = sentText.replaceAll(punctuationOrWhitespace.toString(), " ");
 
-                    // create Drug for each brand found
-                    brands.trie.parseText(sentText).forEach(emit -> {
-                        int begin = sentence.getBegin() + emit.getStart();
-                        int end = sentence.getBegin() + emit.getEnd() + 1;
+            // create Drug for each brand found
+            brands.trie.parseText(sentText).forEach(emit -> {
+                int begin = sentence.getBegin() + emit.getStart();
+                int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                        Drug drug = new Drug(jcas, begin, end);
-                        String brand = String.join(",",
-                                FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()));
-                        drug.setBrand(brand);
-                        drug.addToIndexes(jcas);
+                Drug drug = new Drug(jcas, begin, end);
+                String brand = String.join(",",
+                        FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()));
+                drug.setBrand(brand);
+                drug.addToIndexes(jcas);
 
-                        getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
-                    });
+                getContext().getLogger().log(Level.INFO, "Found brand: " + drug.getCoveredText());
+            });
 
-                    // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
-                    brands.trie.tokenize(sentText).parallelStream()
-                            .filter(token -> !token.isMatch())
-                            .map(Token::getFragment)
-                            .filter(fragment -> fragment.length() >= 7)
-                            .forEach(fragment -> brands.keywordMap.values().stream()
-                                    .filter(keyword ->
-                                            damerau.distance(fragment, keyword.toLowerCase()) <= 1)
-                                    .findFirst()
-                                    .ifPresent(keyword -> {
-                                        int offset = sentence.getCoveredText().indexOf(fragment);
-                                        int begin = sentence.getBegin() + offset;
-                                        int end = sentence.getBegin() + offset + fragment.length();
+            // create ConceptMention and Ingredient for each ingredient found
+            ingredients.trie.parseText(sentText).forEach(emit -> {
+                int begin = sentence.getBegin() + emit.getStart();
+                int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                                        Drug drug = new Drug(jcas, begin, end);
-                                        String brand = String.join(",",
-                                                FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, keyword));
-                                        drug.setBrand(brand);
-                                        drug.addToIndexes(jcas);
+                String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
 
-                                        getContext().getLogger().log(Level.INFO, "Found brand via fuzzy matching: " +
-                                                fragment
-                                        );
-                                    })
-                            );
+                createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, rxCui);
 
-                    // create ConceptMention and Ingredient for each ingredient found
-                    ingredients.trie.parseText(sentText).forEach(emit -> {
-                        int begin = sentence.getBegin() + emit.getStart();
-                        int end = sentence.getBegin() + emit.getEnd() + 1;
+                getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
+            });
 
-                        String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
+            ImmutableList<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
-                        createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, rxCui);
+            // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
+            Streams.stream(jcas.getAnnotationIndex(WordToken.type).subiterator(sentence))
+                    .filter(wordToken -> wordToken.getCoveredText().length() >= 8)
+                    .filter(wordToken ->
+                            drugs.stream()
+                                    .noneMatch(drug ->
+                                            wordToken.getBegin() >= drug.getBegin() &&
+                                                    wordToken.getEnd() <= drug.getEnd())
+                    )
+                    .forEach(wordToken -> ingredients.keywordMap.values().parallelStream()
+                            .filter(keyword ->
+                                    damerau.distance(wordToken.getCoveredText(), keyword.toLowerCase()) == 1
+                            )
+                            .findFirst()
+                            .ifPresent(keyword -> {
+                                String rxCui = FhirQueryUtils
+                                        .getRxCuiFromKeywordMap(ingredients.keywordMap, keyword);
 
-                        getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
-                    });
+                                createAnnotationsForIngredient(
+                                        jcas, (Sentence) sentence, wordToken.getBegin(), wordToken.getEnd(), rxCui);
 
-                    // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
-                    ingredients.trie.tokenize(sentText).parallelStream()
-                            .filter(token -> !token.isMatch())
-                            .map(Token::getFragment)
-                            .filter(fragment -> fragment.length() >= 7)
-                            .forEach(fragment -> ingredients.keywordMap.values().stream()
-                                    .filter(keyword ->
-                                            damerau.distance(fragment, keyword.toLowerCase()) <= 1)
-                                    .findFirst()
-                                    .ifPresent(keyword -> {
-                                        int offset = sentence.getCoveredText().indexOf(fragment);
-                                        int begin = sentence.getBegin() + offset;
-                                        int end = sentence.getBegin() + offset + fragment.length();
+                                getContext().getLogger().log(
+                                        Level.INFO, "Found ingredient via fuzzy matching: " +
+                                                wordToken.getCoveredText()
+                                );
+                            }));
+        });
 
-                                        String rxCui = FhirQueryUtils
-                                                .getRxCuiFromKeywordMap(ingredients.keywordMap, keyword);
-
-                                        createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, rxCui);
-
-                                        getContext().getLogger().log(
-                                                Level.INFO, "Found ingredient via fuzzy matching: " + fragment
-                                        );
-                                    })
-                            );
-
-
-                })
-        );
     }
 
     private void createAnnotationsForIngredient(JCas jcas, Sentence sentence, int begin, int end, String rxCui) {
