@@ -34,6 +34,8 @@ import org.ohnlp.medxn.type.MedAttr;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 @SuppressWarnings("UnstableApiUsage")
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
@@ -91,6 +93,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             boolean hasStrength = attributes.stream()
                     .map(MedAttr::getTag)
                     .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
+
+            boolean hasBrand = !Optional.ofNullable(drug.getBrand()).orElse("").isEmpty();
 
             Set<Medication> initialResults = ImmutableSet.copyOf(candidateMedications);
             Set<Medication> formRouteResults = ImmutableSet.copyOf(candidateMedications);
@@ -157,11 +161,13 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         if (set.size() == 1) {
                             Medication medication = set.iterator().next();
 
-                            drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
-                            drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
-
                             drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
                             drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+
+                            if (!tagParentMedication(jcas, drug, medication)) {
+                                drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
+                                drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
+                            }
 
                             getContext().getLogger().log(Level.INFO, "Tagging " +
                                     medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
@@ -192,12 +198,33 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                 Comparator<Medication> byDisplayLength = Comparator.comparingInt((Medication m) ->
                                         m.getCode().getCodingFirstRep().getDisplay().length());
 
-                                FhirQueryUtils
+                                Stream<Medication> medicationStream = FhirQueryUtils
                                         .getMedicationsFromCode(allMedications, parentCodes)
-                                        .stream()
+                                        .stream();
+
+                                if (hasStrength) {
+                                    medicationStream = medicationStream
+                                            .filter(medication -> medication.getIngredient().stream()
+                                                    .allMatch(component -> component.getStrength().getNumerator().getUnit() != null &&
+                                                            component.getStrength().getNumerator().getValue() != null));
+                                } else {
+                                    medicationStream = medicationStream
+                                            .filter(medication -> medication.getIngredient().stream()
+                                                    .allMatch(component -> component.getStrength().getNumerator().getUnit() == null &&
+                                                            component.getStrength().getNumerator().getValue() == null));
+                                }
+
+                                if (hasBrand) {
+                                    medicationStream = medicationStream
+                                            .filter(medication -> !medication.getExtensionsByUrl(url + "StructureDefinition/brand").isEmpty());
+                                } else {
+                                    medicationStream = medicationStream
+                                            .filter(medication -> medication.getExtensionsByUrl(url + "StructureDefinition/brand").isEmpty());
+                                }
+
+                                medicationStream
                                         .min(byDisplayLength)
                                         .ifPresent(parentMedication -> {
-
 
                                             drug.setNormRxName(parentMedication.getCode().getCodingFirstRep().getDisplay());
                                             drug.setNormRxCui(parentMedication.getCode().getCodingFirstRep().getCode());
@@ -222,6 +249,61 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                     });
 
         }));
+    }
+
+    private boolean tagParentMedication(JCas jcas, Drug drug, Medication specificMedication) {
+        FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
+
+        List<MedAttr> attributes = Streams.stream(attributeArray)
+                .map(MedAttr.class::cast)
+                .collect(ImmutableList.toImmutableList());
+
+        boolean hasStrength = attributes.stream()
+                .map(MedAttr::getTag)
+                .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
+
+        boolean hasBrand = !Optional.ofNullable(drug.getBrand()).orElse("").isEmpty();
+
+        Set<String> parentCodes = allMedicationKnowledge.get(specificMedication.getCode().getCodingFirstRep().getCode())
+                .getAssociatedMedication()
+                .stream()
+                .map(Reference::getReference)
+                .map(string -> string.split("/")[1].split("rxNorm-")[1])
+                .collect(ImmutableSet.toImmutableSet());
+
+        Stream<Medication> medicationStream = FhirQueryUtils
+                .getMedicationsFromCode(allMedications, parentCodes)
+                .stream();
+
+        if (hasStrength) {
+            medicationStream = medicationStream
+                    .filter(medication -> medication.getIngredient().stream()
+                            .allMatch(component -> component.getStrength().getNumerator().getUnit() != null &&
+                                    component.getStrength().getNumerator().getValue() != null));
+        } else {
+            medicationStream = medicationStream
+                    .filter(medication -> medication.getIngredient().stream()
+                            .allMatch(component -> component.getStrength().getNumerator().getUnit() == null &&
+                                    component.getStrength().getNumerator().getValue() == null));
+        }
+
+        if (hasBrand) {
+            medicationStream = medicationStream
+                    .filter(medication -> !medication.getExtensionsByUrl(url + "StructureDefinition/brand").isEmpty());
+        } else {
+            medicationStream = medicationStream
+                    .filter(medication -> medication.getExtensionsByUrl(url + "StructureDefinition/brand").isEmpty());
+        }
+
+        AtomicBoolean isTagged = new AtomicBoolean(false);
+
+        medicationStream.findFirst().ifPresent(medication -> {
+            drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
+            drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
+            isTagged.set(true);
+        });
+
+        return isTagged.get();
     }
 
     @SuppressWarnings("UnstableApiUsage")
