@@ -255,12 +255,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                 .map(MedicationIngredientComponentCommons::new)
                                 .allMatch(component ->
                                         annotationIngredients.stream().allMatch(ingredient ->
-                                                component.getItemCode().contentEquals(ingredient.getItemCode()) &&
-                                                        component.getStrengthNumeratorValue().equals(
-                                                                ingredient.getStrengthNumeratorValue()) &&
-                                                        component.getStrengthNumeratorUnit().contentEquals(
-                                                                ingredient.getStrengthNumeratorUnit())
-                                        )
+                                                component.getCell().equals(ingredient.getCell()))
                                 )
                 )
                 .collect(ImmutableSet.toImmutableSet());
@@ -285,11 +280,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                 .map(MedicationIngredientComponentCommons::new)
                                 .allMatch(component ->
                                         annotationIngredients.stream().allMatch(ingredient ->
-                                                component.getStrengthNumeratorValue().equals(
-                                                        ingredient.getStrengthNumeratorValue()) &&
-                                                        component.getStrengthNumeratorUnit().contentEquals(
-                                                                ingredient.getStrengthNumeratorUnit())
-                                        )
+                                                component.getAnonEntry().equals(ingredient.getAnonEntry()))
                                 )
                 )
                 .collect(ImmutableSet.toImmutableSet());
@@ -308,7 +299,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         // prefer concepts with ingredient-strength pairs
         return !fhirMedicationsStrength.isEmpty() ? fhirMedicationsStrength :
                 !fhirMedicationsAnonStrength.isEmpty() ? fhirMedicationsAnonStrength :
-                medications;
+                        medications;
     }
 
     // use Adapter pattern to simplify comparisons
