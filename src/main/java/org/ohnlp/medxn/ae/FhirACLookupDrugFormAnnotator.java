@@ -175,25 +175,26 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                     String sanitizedDosageForm = dosageForm
                             .replaceAll(punctuationOrWhitespace.toString(), " ");
 
-                    Emit matchedForm = null;
+                    String inferredDosageForm = sanitizedDosageForm;
+
+                    Emit formEmit;
 
                     if (doseForms.trie.containsMatch(sanitizedDosageForm)) {
-                        matchedForm = doseForms.trie.firstMatch(sanitizedDosageForm);
+                        formEmit = doseForms.trie.firstMatch(sanitizedDosageForm);
 
                     } else {
-                        if (oralContextFlag.get() &&
-                                doseForms.trie.containsMatch("oral " + sanitizedDosageForm)) {
-                            matchedForm = doseForms.trie.firstMatch("oral " + sanitizedDosageForm);
-                        } else if (vaginalContextFlag.get() &&
-                                doseForms.trie.containsMatch("vaginal " + sanitizedDosageForm)) {
-                            matchedForm = doseForms.trie.firstMatch("vaginal " + sanitizedDosageForm);
-                        } else if (rectalContextFlag.get() &&
-                                doseForms.trie.containsMatch("rectal " + sanitizedDosageForm)) {
-                            matchedForm = doseForms.trie.firstMatch("rectal " + sanitizedDosageForm);
-                        } else if (topicalContextFlag.get() &&
-                                doseForms.trie.containsMatch("topical " + sanitizedDosageForm)) {
-                            matchedForm = doseForms.trie.firstMatch("topical " + sanitizedDosageForm);
+
+                        if (oralContextFlag.get()) {
+                            inferredDosageForm = "oral " + inferredDosageForm;
+                        } else if (vaginalContextFlag.get()) {
+                            inferredDosageForm = "vaginal " + inferredDosageForm;
+                        } else if (rectalContextFlag.get()) {
+                            inferredDosageForm = "rectal " + inferredDosageForm;
+                        } else if (topicalContextFlag.get()) {
+                            inferredDosageForm = "topical " + inferredDosageForm;
                         }
+
+                        formEmit = doseForms.trie.firstMatch(inferredDosageForm);
                     }
 
                     if (matchedForm != null) {
