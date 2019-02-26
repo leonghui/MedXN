@@ -36,17 +36,13 @@ import java.util.List;
 public class FhirQueryClient {
     private FhirContext context = FhirContext.forR4();
     private IGenericClient client;
-    private final String FHIR_SERVER_URL;
     private final String cacheFolder = System.getProperty("user.dir") + File.separator + "tmp";
 
     private FhirQueryClient(String url, Integer timeout) {
-        int TIMEOUT_SEC = timeout;
-
-        FHIR_SERVER_URL = url;
         context.setPerformanceOptions(PerformanceOptionsEnum.DEFERRED_MODEL_SCANNING);
-        context.getRestfulClientFactory().setSocketTimeout(TIMEOUT_SEC * 1000);
+        context.getRestfulClientFactory().setSocketTimeout(timeout * 1000);
 
-        client = context.newRestfulGenericClient(FHIR_SERVER_URL);
+        client = context.newRestfulGenericClient(url);
     }
 
     public void destroy() {
@@ -187,10 +183,6 @@ public class FhirQueryClient {
     @SuppressWarnings("unchecked")
     public List<Substance> getAllSubstances() {
         return (List<Substance>) getAllResources("Substance");
-    }
-
-    public String getServerUrl() {
-        return FHIR_SERVER_URL;
     }
 
     private Path getCachedFilePath(String className) {

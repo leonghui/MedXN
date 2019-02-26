@@ -53,7 +53,6 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
     private final FhirQueryUtils.LookupTable ingredients = new FhirQueryUtils.LookupTable();
     private final FhirQueryUtils.LookupTable brands = new FhirQueryUtils.LookupTable();
-    private FhirQueryClient queryClient;
     private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
     private final Pattern digitsSlashDigits = Pattern.compile(" \\d+/\\d+");
     private final Pattern doublePunctOrWhitespace = Pattern.compile("(\\p{Punct}|\\s){2}");
@@ -67,7 +66,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         // Get config parameter values
         String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
-        queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         queryClient
                 .getAllSubstances()
@@ -77,7 +76,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                     ingredients.keywordMap.put(coding.getCode(),
                             coding.getDisplay());
 
-                    substance.getExtensionsByUrl(queryClient.getServerUrl() + "StructureDefinition/synonym")
+                    substance.getExtensionsByUrl(url + "StructureDefinition/synonym")
                             .forEach(synonymExtension ->
                                     ingredients.keywordMap.put(coding.getCode(),
                                             synonymExtension.getValue().toString()
@@ -101,7 +100,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         queryClient
                 .getAllMedications()
                 .forEach(medication -> medication
-                        .getExtensionsByUrl(queryClient.getServerUrl() + "StructureDefinition/brand")
+                        .getExtensionsByUrl(url + "StructureDefinition/brand")
                         .stream()
                         .findFirst()
                         .ifPresent(brandExtension -> {
@@ -137,7 +136,6 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         );
 
         queryClient.destroy();
-        queryClient = null;
     }
 
     @SuppressWarnings("UnstableApiUsage")

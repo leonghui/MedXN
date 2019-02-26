@@ -40,16 +40,16 @@ import java.util.*;
 public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private List<Medication> allMedications;
     private List<MedicationKnowledge> allMedicationKnowledge;
-    private FhirQueryClient queryClient;
+    private String url;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
         super.initialize(uimaContext);
 
         // Get config parameter values
-        String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
+        url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
-        queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         allMedications = queryClient.getAllMedications();
         allMedicationKnowledge = queryClient.getAllMedicationKnowledge();
@@ -159,7 +159,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
         return allMedications.parallelStream()
                 .filter(medication -> medication.getExtensionsByUrl(
-                        queryClient.getServerUrl() + "StructureDefinition/brand"
+                         url + "StructureDefinition/brand"
                 ).isEmpty())
                 .filter(medication -> {
                     List<String> fhirIngredients = FhirQueryUtils.getIngredientIdsFromMedication(medication);
