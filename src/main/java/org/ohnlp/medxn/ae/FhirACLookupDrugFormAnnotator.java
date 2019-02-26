@@ -197,9 +197,9 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                         formEmit = doseForms.trie.firstMatch(inferredDosageForm);
                     }
 
-                    if (matchedForm != null) {
+                    if (formEmit != null) {
                         String rxCui = FhirQueryUtils
-                                .getRxCuiFromKeywordMap(doseForms.keywordMap, matchedForm.getKeyword());
+                                .getRxCuiFromKeywordMap(doseForms.keywordMap, formEmit.getKeyword());
                         drug.setForm(rxCui);
                     }
                 }
