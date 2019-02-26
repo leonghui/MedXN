@@ -135,6 +135,9 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 + brands.getKeywordSize() + " keywords against "
                 + brands.getConceptSize() + " concepts."
         );
+
+        queryClient.destroy();
+        queryClient = null;
     }
 
     @SuppressWarnings("UnstableApiUsage")

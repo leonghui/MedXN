@@ -17,6 +17,7 @@
 package org.ohnlp.medxn.fhir;
 
 import ca.uhn.fhir.context.FhirContext;
+import ca.uhn.fhir.context.PerformanceOptionsEnum;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.client.exceptions.FhirClientConnectionException;
 import com.google.common.collect.ImmutableList;
@@ -33,16 +34,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FhirQueryClient {
-    private final FhirContext context = FhirContext.forR4();
-    private final IGenericClient client;
+    private FhirContext context = FhirContext.forR4();
+    private IGenericClient client;
     private final String FHIR_SERVER_URL;
     private final String cacheFolder = System.getProperty("user.dir") + File.separator + "tmp";
 
     private FhirQueryClient(String url, Integer timeout) {
-        FHIR_SERVER_URL = url;
-        client = context.newRestfulGenericClient(FHIR_SERVER_URL);
         int TIMEOUT_SEC = timeout;
+
+        FHIR_SERVER_URL = url;
+        context.setPerformanceOptions(PerformanceOptionsEnum.DEFERRED_MODEL_SCANNING);
         context.getRestfulClientFactory().setSocketTimeout(TIMEOUT_SEC * 1000);
+
+        client = context.newRestfulGenericClient(FHIR_SERVER_URL);
+    }
+
+    public void destroy() {
+        context = null;
+        client = null;
     }
 
     public static FhirQueryClient createFhirQueryClient(String url, Integer timeout) {
@@ -182,10 +191,6 @@ public class FhirQueryClient {
 
     public String getServerUrl() {
         return FHIR_SERVER_URL;
-    }
-
-    public FhirContext getContext() {
-        return context;
     }
 
     private Path getCachedFilePath(String className) {

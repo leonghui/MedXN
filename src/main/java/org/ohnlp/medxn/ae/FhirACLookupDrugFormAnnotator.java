@@ -73,6 +73,8 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
             doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Otic", "Ear").toLowerCase());
         });
 
+        queryClient.destroy();
+
         SetMultimap<String, String> additionalKeywords = HashMultimap.create();
 
         // enrich keyword map with plural terms
