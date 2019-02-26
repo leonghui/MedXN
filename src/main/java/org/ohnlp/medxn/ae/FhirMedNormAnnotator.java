@@ -23,9 +23,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
-import org.hl7.fhir.r4.model.Medication;
-import org.hl7.fhir.r4.model.MedicationKnowledge;
-import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.*;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -69,7 +67,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             if (drug.getBrand() != null) {
                 Set<String> candidateBrands = ImmutableSet.copyOf(drug.getBrand().split(","));
 
-                candidateMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, candidateBrands);
+                candidateMedications = FhirQueryUtils.getMedicationsFromCode(allMedications, candidateBrands);
             } else {
                 candidateMedications = findGenericMedications(jcas, drug);
             }
@@ -197,7 +195,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                                         m.getCode().getCodingFirstRep().getDisplay().length());
 
                                 FhirQueryUtils
-                                        .getMedicationsFromRxCui(allMedications, parentCodes)
+                                        .getMedicationsFromCode(allMedications, parentCodes)
                                         .stream()
                                         .min(byDisplayLength)
                                         .ifPresent(parentMedication -> {

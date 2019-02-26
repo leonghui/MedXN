@@ -163,7 +163,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
                 Drug drug = new Drug(jcas, begin, end);
                 String brand = String.join(",",
-                        FhirQueryUtils.getAllRxCuisFromKeywordMap(brands.keywordMap, emit.getKeyword()));
+                        FhirQueryUtils.getAllCodesFromKeywordMap(brands.keywordMap, emit.getKeyword()));
                 drug.setBrand(brand);
                 drug.addToIndexes(jcas);
 
@@ -175,9 +175,9 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 int begin = sentence.getBegin() + emit.getStart();
                 int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                String rxCui = FhirQueryUtils.getRxCuiFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
+                String code = FhirQueryUtils.getCodeFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
 
-                createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, rxCui);
+                createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, code);
 
                 getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
             });
@@ -200,7 +200,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                             .findFirst()
                             .ifPresent(keyword -> {
                                 String code = FhirQueryUtils
-                                        .getRxCuiFromKeywordMap(ingredients.keywordMap, keyword);
+                                        .getCodeFromKeywordMap(ingredients.keywordMap, keyword);
 
                                 createAnnotationsForIngredient(
                                         jcas, (Sentence) sentence, wordToken.getBegin(), wordToken.getEnd(), code);

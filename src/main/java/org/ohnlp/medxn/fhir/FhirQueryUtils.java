@@ -19,10 +19,7 @@ package org.ohnlp.medxn.fhir;
 import com.google.common.collect.*;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.jcas.tcas.Annotation;
-import org.hl7.fhir.r4.model.CodeableConcept;
-import org.hl7.fhir.r4.model.Coding;
-import org.hl7.fhir.r4.model.Medication;
-import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.*;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -35,22 +32,23 @@ public class FhirQueryUtils {
                 .map(Map.Entry::getKey);
     }
 
-    public static String getRxCuiFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
+    public static String getCodeFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
         return getKeyStreamFromKeywordMap(keywordMap, keyword)
                 .findFirst()
                 .orElse(null);
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static Set<String> getAllRxCuisFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
+    public static Set<String> getAllCodesFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
         return getKeyStreamFromKeywordMap(keywordMap, keyword)
                 .collect(ImmutableSet.toImmutableSet());
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static Set<Medication> getMedicationsFromRxCui(Map<String, Medication> allMedications, Collection<String> rxCuis) {
-        return rxCuis.stream()
-                .map(allMedications::get)
+    public static Set<Medication> getMedicationsFromCode(
+            Map<String, Medication> medications, Collection<String> codes) {
+        return codes.stream()
+                .map(medications::get)
                 .collect(ImmutableSet.toImmutableSet());
     }
 
@@ -120,7 +118,7 @@ public class FhirQueryUtils {
 
     public static class LookupTable {
         // Data structure to store keywords
-        // rxCui, keyword
+        // code, keyword
         public final SetMultimap<String, String> keywordMap = HashMultimap.create();
 
         // Data structure to store the trie

@@ -54,23 +54,23 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
-        FhirQueryUtils.getDosageFormMap(queryClient).forEach((rxCui, term) -> {
+        FhirQueryUtils.getDosageFormMap(queryClient).forEach((code, term) -> {
 
-            doseForms.keywordMap.put(rxCui, term.toLowerCase());
+            doseForms.keywordMap.put(code, term.toLowerCase());
 
             // enrich keyword map with common abbreviations
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Topical", "Top").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Inhaler", "Inh").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Tablet", "Tab").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Capsule", "Cap").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Injection|Injectable", "Inj").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Topical", "Top").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Cream", "Crm").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Ointment", "Oint").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Suppository", "Supp").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Inhaler", "Inh").toLowerCase());
 
             // enrich keyword map with common synonyms
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Ophthalmic", "Eye").toLowerCase());
-            doseForms.keywordMap.put(rxCui, term.replaceAll("(?i)Otic", "Ear").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Ophthalmic", "Eye").toLowerCase());
+            doseForms.keywordMap.put(code, term.replaceAll("(?i)Otic", "Ear").toLowerCase());
         });
 
         queryClient.destroy();
@@ -201,9 +201,9 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                     }
 
                     if (formEmit != null) {
-                        String rxCui = FhirQueryUtils
-                                .getRxCuiFromKeywordMap(doseForms.keywordMap, formEmit.getKeyword());
-                        drug.setForm(rxCui);
+                        String code = FhirQueryUtils
+                                .getCodeFromKeywordMap(doseForms.keywordMap, formEmit.getKeyword());
+                        drug.setForm(code);
                     }
                 }
             }

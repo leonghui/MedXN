@@ -355,9 +355,9 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private boolean compareIngredients(Drug sourceDrug, Drug targetDrug) {
         boolean canBeMerged = false;
 
-        List<String> rxCuis = ImmutableList.copyOf(targetDrug.getBrand().split(","));
+        List<String> codes = ImmutableList.copyOf(targetDrug.getBrand().split(","));
 
-        Set<Medication> targetMedications = FhirQueryUtils.getMedicationsFromRxCui(allMedications, rxCuis);
+        Set<Medication> targetMedications = FhirQueryUtils.getMedicationsFromCode(allMedications, codes);
 
         ArrayList<String> candidateIngredients = new ArrayList<>(
                 FhirQueryUtils.getIngredientIdsFromMedications(targetMedications));
