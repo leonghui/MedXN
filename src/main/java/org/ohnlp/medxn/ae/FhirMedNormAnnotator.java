@@ -34,6 +34,7 @@ import org.ohnlp.medxn.type.LookupWindow;
 import org.ohnlp.medxn.type.MedAttr;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -347,6 +348,8 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
     class IngredientCommons {
         private final Ingredient ingredient;
+        private boolean isMicrogram = false;
+        private boolean isGram = false;
 
         IngredientCommons(Ingredient ingredient) {
             this.ingredient = ingredient;
@@ -361,15 +364,46 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         }
 
         String getStrengthNumeratorUnit() {
-            return ingredient.getAmountUnit().toLowerCase();
+            return Optional.ofNullable(ingredient.getAmountUnit()).orElse("").toLowerCase();
+        }
+
+        String getNormStrengthNumeratorUnit() {
+            switch (getStrengthNumeratorUnit()) {
+                case "milligrams":
+                case "milligram":
+                    return "mg";
+                case "grams":
+                case "gram":
+                case "g":
+                    isGram = true;
+                    return "mg";
+                case "micrograms":
+                case "microgram":
+                case "mcg":
+                    isMicrogram = true;
+                    return "mg";
+                default:
+                    return getStrengthNumeratorUnit();
+            }
+        }
+
+        BigDecimal getNormStrengthNumeratorValue() {
+            getNormStrengthNumeratorUnit();
+            if (isMicrogram) {
+                return getStrengthNumeratorValue().divide(new BigDecimal(1000), RoundingMode.HALF_UP);
+            } else if (isGram) {
+                return getStrengthNumeratorValue().multiply(new BigDecimal(1000));
+            } else {
+                return getStrengthNumeratorValue();
+            }
         }
 
         Table.Cell<String, String, BigDecimal> getCell() {
-            return Tables.immutableCell(getItemCode(), getStrengthNumeratorUnit(), getStrengthNumeratorValue());
+            return Tables.immutableCell(getItemCode(), getNormStrengthNumeratorUnit(), getNormStrengthNumeratorValue());
         }
 
         Map.Entry<String, BigDecimal> getAnonEntry() {
-            return Maps.immutableEntry(getStrengthNumeratorUnit(), getStrengthNumeratorValue());
+            return Maps.immutableEntry(getNormStrengthNumeratorUnit(), getNormStrengthNumeratorValue());
         }
     }
 }
