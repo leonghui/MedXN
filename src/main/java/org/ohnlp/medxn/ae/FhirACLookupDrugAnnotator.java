@@ -57,9 +57,11 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final Pattern punctuationOrWhitespace = Pattern.compile("\\p{Punct}|\\s");
     private final Pattern digitsSlashDigits = Pattern.compile(" \\d+/\\d+");
     private final Pattern doublePunctOrWhitespace = Pattern.compile("(\\p{Punct}|\\s){2}");
+    private final Pattern firstWord = Pattern.compile("(?:^|(?:[.!?]\\s))(\\w+)");
     private final Pattern htmlEntities = Pattern.compile("&\\S+;");
     private final Damerau damerau = new Damerau();
     private Map<String, Substance> allSubstances;
+    private final int MINIMUM_WORD_LENGTH = 9;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -110,14 +112,20 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
                                     // enrich keyword map with trade name root without multiple strengths
                                     if (brandWithMultipleStrength.find()) {
-                                        brands.keywordMap.put(code,
-                                                brandWithMultipleStrength.replaceAll(""));
+                                        brands.keywordMap.put(code, brandWithMultipleStrength.replaceAll(""));
                                     }
 
                                     brands.keywordMap.put(code,
                                             brand.replaceAll(punctuationOrWhitespace.toString(), " ")
                                                     .replaceAll(doublePunctOrWhitespace.toString(), " ")
                                     );
+
+                                    Matcher brandWithMultipleWords = firstWord.matcher(brand);
+
+                                    if (brandWithMultipleWords.find() &&
+                                            brandWithMultipleWords.group(0).length() >= MINIMUM_WORD_LENGTH) {
+                                        brands.keywordMap.put(code, brandWithMultipleWords.group(0));
+                                    }
                                 })
                 );
 
@@ -189,7 +197,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
 
             // use strict fuzzy matching via Damerau-Levenshtein distance of 1 for remaining tokens
             Streams.stream(jcas.getAnnotationIndex(WordToken.type).subiterator(sentence))
-                    .filter(wordToken -> wordToken.getCoveredText().length() >= 8)
+                    .filter(wordToken -> wordToken.getCoveredText().length() >= MINIMUM_WORD_LENGTH)
                     .filter(wordToken ->
                             drugs.stream()
                                     .noneMatch(drug ->
