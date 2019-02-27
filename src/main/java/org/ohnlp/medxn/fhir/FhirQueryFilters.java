@@ -63,9 +63,9 @@ public class FhirQueryFilters {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private Stream<Medication> validateDoseFormOrRoute(Stream<Medication> medicationStream, boolean isExcludeAll) {
+    private Stream<Medication> validateDoseForm(Stream<Medication> medicationStream, boolean isExcludeAll) {
 
-        String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
+        String annotationDoseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
         FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
 
@@ -73,13 +73,13 @@ public class FhirQueryFilters {
                 .map(MedAttr.class::cast)
                 .collect(ImmutableList.toImmutableList());
 
-        boolean hasRoute = attributes.stream()
+        boolean hasFormAttribute = attributes.stream()
                 .map(MedAttr::getTag)
-                .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE));
+                .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.FORM));
 
-        if (doseForm.contentEquals("") && !hasRoute && isExcludeAll) {
+        if ((annotationDoseForm.contentEquals("") || !hasFormAttribute) /*&& !hasRouteAttribute*/ && isExcludeAll) {
             medicationStream = Stream.empty();
-        } else if (doseForm.contentEquals("") && !hasRoute) {
+        } else if ((annotationDoseForm.contentEquals("") || !hasFormAttribute) /*&& !hasRouteAttribute*/) {
             medicationStream = medicationStream.filter(medication -> !medication.hasForm());
         } else {
             medicationStream = medicationStream.filter(Medication::hasForm);
@@ -142,14 +142,32 @@ public class FhirQueryFilters {
         return medicationStream;
     }
 
-    public Set<Medication> getValidatedSet(Set<Medication> medications) {
+    public Set<Medication> getFullyValidatedSet(Set<Medication> medications) {
         Stream<Medication> medicationStream = validateBrand(medications.stream(), false);
 
-        medicationStream = validateDoseFormOrRoute(medicationStream, false);
+        medicationStream = validateDoseForm(medicationStream, false);
 
         medicationStream = validateStrength(medicationStream, false);
 
-        return medicationStream.collect(Collectors.toSet());
+        Set<Medication> results = medicationStream.collect(Collectors.toSet());
+
+        getContext().getLogger().log(Level.INFO, "Remaining " +
+                results.size() + " medications after full validation");
+
+        return results;
+    }
+
+    public Set<Medication> getValidatedSetExceptDf(Set<Medication> medications) {
+        Stream<Medication> medicationStream = validateBrand(medications.stream(), false);
+
+        medicationStream = validateStrength(medicationStream, false);
+
+        Set<Medication> results = medicationStream.collect(Collectors.toSet());
+
+        getContext().getLogger().log(Level.INFO, "Remaining " +
+                results.size() + " medications after validation without dose form check");
+
+        return results;
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -158,7 +176,7 @@ public class FhirQueryFilters {
         // CRITERION 2a: Include only medications with the same dose form
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
-        Set<Medication> results = validateDoseFormOrRoute(medications.stream(), true)
+        Set<Medication> results = validateDoseForm(medications.stream(), true)
                 .filter(medication -> medication
                         .getForm()
                         .getCodingFirstRep()
@@ -338,7 +356,7 @@ public class FhirQueryFilters {
             Stream<Medication> parentStream = FhirQueryUtils
                     .getMedicationsFromCode(allMedications, codesToRetrieve).stream();
 
-            Set<Medication> results = parentStream
+            Set<Medication> results = validateStrength(parentStream, false)
                     .collect(ImmutableSet.toImmutableSet());
 
             logResults("associations", drug, results, isSilent);
