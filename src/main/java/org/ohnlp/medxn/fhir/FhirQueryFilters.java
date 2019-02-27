@@ -63,7 +63,7 @@ public class FhirQueryFilters {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private Stream<Medication> validateDoseFormOrRoute(Stream<Medication> medicationStream, boolean isStrict) {
+    private Stream<Medication> validateDoseFormOrRoute(Stream<Medication> medicationStream, boolean isExcludeAll) {
 
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
@@ -77,7 +77,7 @@ public class FhirQueryFilters {
                 .map(MedAttr::getTag)
                 .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE));
 
-        if (doseForm.contentEquals("") && !hasRoute && isStrict) {
+        if (doseForm.contentEquals("") && !hasRoute && isExcludeAll) {
             medicationStream = Stream.empty();
         } else if (doseForm.contentEquals("") && !hasRoute) {
             medicationStream = medicationStream.filter(medication -> !medication.hasForm());
@@ -89,7 +89,7 @@ public class FhirQueryFilters {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private Stream<Medication> validateStrength(Stream<Medication> medicationStream, boolean isStrict) {
+    private Stream<Medication> validateStrength(Stream<Medication> medicationStream, boolean isExcludeAll) {
         FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
 
         List<MedAttr> attributes = Streams.stream(attributeArray)
@@ -100,32 +100,34 @@ public class FhirQueryFilters {
                 .map(MedAttr::getTag)
                 .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
 
-        if (!hasStrength && isStrict) {
+        if (!hasStrength && isExcludeAll) {
             medicationStream = Stream.empty();
         } else if (!hasStrength) {
             medicationStream = medicationStream.filter(medication ->
-                    medication.getIngredient().stream()
-                            .allMatch(component ->
-                                    component.getStrength().getNumerator().getUnit() == null &&
-                                            component.getStrength().getNumerator().getValue() == null
-                            ));
+                    medication.getIngredient().isEmpty() ||
+                            medication.getIngredient().stream()
+                                    .allMatch(component ->
+                                            component.getStrength().getNumerator().getUnit() == null &&
+                                                    component.getStrength().getNumerator().getValue() == null
+                                    ));
         } else {
             medicationStream = medicationStream.filter(medication ->
-                    medication.getIngredient().stream()
-                            .allMatch(component ->
-                                    component.getStrength().getNumerator().getUnit() != null &&
-                                            component.getStrength().getNumerator().getValue() != null
-                            ));
+                    !medication.getIngredient().isEmpty() &&
+                            medication.getIngredient().stream()
+                                    .allMatch(component ->
+                                            component.getStrength().getNumerator().getUnit() != null &&
+                                                    component.getStrength().getNumerator().getValue() != null
+                                    ));
         }
 
         return medicationStream;
     }
 
     @SuppressWarnings("SameParameterValue")
-    private Stream<Medication> validateBrand(Stream<Medication> medicationStream, boolean isStrict) {
+    private Stream<Medication> validateBrand(Stream<Medication> medicationStream, boolean isExcludeAll) {
         boolean hasBrand = !Optional.ofNullable(drug.getBrand()).orElse("").isEmpty();
 
-        if (!hasBrand && isStrict) {
+        if (!hasBrand && isExcludeAll) {
             medicationStream = Stream.empty();
         } else if (!hasBrand) {
             medicationStream = medicationStream
@@ -256,10 +258,9 @@ public class FhirQueryFilters {
                                 .map(Medication.MedicationIngredientComponent.class::cast)
                                 .map(MedicationIngredientComponentAdapter::new)
                                 .allMatch(component ->
-                                        annotationIngredients.stream().allMatch(ingredient ->
-                                                component.getCell().equals(ingredient.getCell()))
-                                )
-                )
+                                        annotationIngredients.stream()
+                                                .anyMatch(ingredient ->
+                                                        component.getCell().equals(ingredient.getCell()))))
                 .collect(ImmutableSet.toImmutableSet());
 
         logResults("ingredient-strength pair(s)", drug, results, isSilent);
@@ -284,10 +285,9 @@ public class FhirQueryFilters {
                                 .map(Medication.MedicationIngredientComponent.class::cast)
                                 .map(MedicationIngredientComponentAdapter::new)
                                 .allMatch(component ->
-                                        annotationIngredients.stream().allMatch(ingredient ->
-                                                component.getAnonEntry().equals(ingredient.getAnonEntry()))
-                                )
-                )
+                                        annotationIngredients.stream()
+                                                .anyMatch(ingredient -> ingredient.getAnonEntry().equals(
+                                                        component.getAnonEntry()))))
                 .collect(ImmutableSet.toImmutableSet());
 
         logResults("unpaired strength(s)", drug, results, isSilent);
