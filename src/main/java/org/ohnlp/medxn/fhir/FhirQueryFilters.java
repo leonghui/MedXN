@@ -367,6 +367,7 @@ public class FhirQueryFilters {
     // use Adapter pattern to simplify comparisons
     private class MedicationIngredientComponentAdapter {
         private final Medication.MedicationIngredientComponent component;
+        private final int RXNORM_SCALE = 7;
 
         MedicationIngredientComponentAdapter(Medication.MedicationIngredientComponent component) {
             this.component = component;
@@ -379,7 +380,7 @@ public class FhirQueryFilters {
         }
 
         BigDecimal getStrengthNumeratorValue() {
-            return component.getStrength().getNumerator().getValue();
+            return component.getStrength().getNumerator().getValue().setScale(RXNORM_SCALE, BigDecimal.ROUND_HALF_UP);
         }
 
         String getStrengthNumeratorUnit() {
@@ -399,6 +400,7 @@ public class FhirQueryFilters {
         private final Ingredient ingredient;
         private boolean isMicrogram = false;
         private boolean isGram = false;
+        private final int RXNORM_SCALE = 7;
 
         IngredientAdapter(Ingredient ingredient) {
             this.ingredient = ingredient;
@@ -409,7 +411,7 @@ public class FhirQueryFilters {
         }
 
         BigDecimal getStrengthNumeratorValue() {
-            return BigDecimal.valueOf(ingredient.getAmountValue());
+            return BigDecimal.valueOf(ingredient.getAmountValue()).setScale(RXNORM_SCALE, BigDecimal.ROUND_HALF_UP);
         }
 
         String getStrengthNumeratorUnit() {
@@ -418,6 +420,10 @@ public class FhirQueryFilters {
 
         String getNormStrengthNumeratorUnit() {
             switch (getStrengthNumeratorUnit()) {
+                case "iu":
+                case "unit":
+                case "units":
+                    return "unt";
                 case "milligrams":
                 case "milligram":
                     return "mg";
@@ -439,7 +445,7 @@ public class FhirQueryFilters {
         BigDecimal getNormStrengthNumeratorValue() {
             getNormStrengthNumeratorUnit();
             if (isMicrogram) {
-                return getStrengthNumeratorValue().divide(new BigDecimal(1000), RoundingMode.HALF_UP);
+                return getStrengthNumeratorValue().divide(new BigDecimal(1000), RXNORM_SCALE, RoundingMode.HALF_UP);
             } else if (isGram) {
                 return getStrengthNumeratorValue().multiply(new BigDecimal(1000));
             } else {
