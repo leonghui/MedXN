@@ -27,6 +27,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
+import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationKnowledge;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
@@ -35,7 +36,11 @@ import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -43,8 +48,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private Map<String, Medication> allMedications;
     private Map<String, MedicationKnowledge> allMedicationKnowledge;
     private String url;
-    private Comparator<Medication> byDisplayLength = Comparator.comparingInt((Medication m) ->
-            m.getCode().getCodingFirstRep().getDisplay().length());
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -74,141 +77,88 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
             Set<Medication> candidateMedications = candidateBrands.isEmpty() ? findGenericMedications(jcas, drug) :
                     FhirQueryUtils.getMedicationsFromCode(allMedications, candidateBrands);
 
-            Set<Medication> initialResults = queryFilters.getValidatedSet(candidateMedications);
-
-            getContext().getLogger().log(Level.INFO, "Found " + initialResults.size() +
+            getContext().getLogger().log(Level.INFO, "Found " + candidateMedications.size() +
                     " matches with the same brand/ingredient(s)" +
                     " for drug: " + drug.getCoveredText()
             );
 
-            Set<Medication> formResults = queryFilters.byDoseForm(initialResults, false);
+            // Filters for direct matching (normRxCui and normDrugName)
+            Set<Medication> validatedSet = queryFilters.getFullyValidatedSet(candidateMedications);
 
-            Set<Medication> strengthResults = queryFilters.byStrength(initialResults, false);
+            Set<Medication> formResults = queryFilters.byDoseForm(validatedSet, false);
 
-            Set<Medication> routeInferenceResults = queryFilters.byRouteInference(initialResults, false);
+            Set<Medication> strengthResults = queryFilters.byStrength(validatedSet, false);
 
-            Set<Medication> strengthInferenceResults = queryFilters.byStrengthInference(initialResults, false);
+            Set<Medication> inferredStrengthResults = queryFilters.byStrengthInference(validatedSet, false);
 
-            // prefer results with dose form match
-            Set<Medication> formOrRouteResults = !formResults.isEmpty() ? formResults : routeInferenceResults;
+            // prefer results with matching ingredients
+            Set<Medication> strengthOrInferredResults = !strengthResults.isEmpty() ? strengthResults : inferredStrengthResults;
 
-            // prefer results with paired ingredients match
-            Set<Medication> strengthOrInferredResults = !strengthResults.isEmpty() ? strengthResults : strengthInferenceResults;
+            Set<Medication> formStrengthResults = Sets.intersection(formResults, strengthOrInferredResults);
 
             Set<Set<Medication>> resultSets = Stream.of(
-                    initialResults, formOrRouteResults, strengthOrInferredResults)
+                    formResults, strengthOrInferredResults, formStrengthResults)
                     .filter(set -> !set.isEmpty())
                     .collect(ImmutableSet.toImmutableSet());
 
-            Set<Medication> uniqueResults = new HashSet<>();
-
-            Set<Set<Medication>> remainder = new HashSet<>();
-
-            if (resultSets.size() == 1) {
-                Set<Medication> finalSet = resultSets.iterator().next();
-                if (finalSet.size() == 1) {
-                    uniqueResults.add(finalSet.iterator().next());
-                } else {
-                    remainder.add(finalSet);
-                }
-            } else {
-                for (int i = 2; i <= resultSets.size(); i++) {
-
-                    Sets.combinations(resultSets, i).forEach(set -> {
-                        List<Set<Medication>> lists = ImmutableList.copyOf(set);
-
-                        Set<Medication> intersect = lists.get(0);
-
-                        for (int j = 1; j < lists.size(); j++) {
-                            intersect = Sets.intersection(lists.get(j), intersect);
-                        }
-
-                        if (intersect.size() == 1) {
-                            uniqueResults.add(intersect.iterator().next());
-                        } else {
-                            remainder.add(lists.get(0));
-                            remainder.add(lists.get(1));
-                        }
-                    });
-                }
-            }
-
-            Set<Medication> allRemainders = remainder.stream()
-                    .flatMap(Collection::stream)
-                    .collect(ImmutableSet.toImmutableSet());
+            Set<Medication> uniqueResults = resultSets.stream()
+                    .filter(set -> set.size() == 1)
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
 
             if (uniqueResults.size() == 1) {
                 Medication medication = uniqueResults.iterator().next();
 
-                drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
-                drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
+                Coding medicationCoding = medication.getCode().getCodingFirstRep();
+
+                drug.setNormRxName(medicationCoding.getDisplay());
+                drug.setNormRxCui(medicationCoding.getCode());
 
                 getContext().getLogger().log(Level.INFO, "Tagging " +
                         medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
-                        drug.getCoveredText()
-                );
-
-            } else {
-                remainder.add(uniqueResults);
-                getContext().getLogger().log(Level.INFO, "Remaining matches for drug: " +
-                        drug.getCoveredText() + " : " +
-                        FhirQueryUtils.getDisplayNameFromMedications(allRemainders)
-                );
+                        drug.getCoveredText());
             }
 
 
-            Set<Medication> uniqueInferredResults = new HashSet<>();
+            // Filters for inferred matching (normRxCui2 and normDrugName2)
+            Set<Medication> partialValidatedSet = queryFilters.getValidatedSetExceptDf(candidateMedications);
 
-            Set<Set<Medication>> inferredRemainder = new HashSet<>();
+            Set<Medication> strengthResultsWithDf = queryFilters.byStrength(partialValidatedSet, false);
 
-            Set<Set<Medication>> inferenceResultSets = resultSets.stream()
-                    .map(set -> queryFilters.byAssociationInference(set, false))
+            Set<Medication> inferredStrengthWithDfResults = queryFilters.byStrengthInference(partialValidatedSet, false);
+
+            // prefer results with matching ingredients
+            Set<Medication> strengthOrInferredWithDfResults = !strengthResults.isEmpty() ? strengthResultsWithDf : inferredStrengthWithDfResults;
+
+            Set<Medication> routeInferenceResults = queryFilters.byRouteInference(partialValidatedSet, false);
+
+            // prefer results with matching dose forms
+            Set<Medication> formOrRouteResults = !formResults.isEmpty() ? formResults : routeInferenceResults;
+
+            Set<Medication> inferredFormStrengthResults = Sets.intersection(formOrRouteResults, strengthOrInferredWithDfResults);
+
+            Set<Set<Medication>> inferredResultSets = Stream.of(
+                    strengthOrInferredWithDfResults, formOrRouteResults, inferredFormStrengthResults)
                     .filter(set -> !set.isEmpty())
                     .collect(ImmutableSet.toImmutableSet());
 
-            if (inferenceResultSets.size() == 1) {
-                Set<Medication> finalSet = inferenceResultSets.iterator().next();
-                if (finalSet.size() == 1) {
-                    uniqueInferredResults.add(finalSet.iterator().next());
-                } else {
-                    inferredRemainder.add(finalSet);
-                }
-            } else {
-                for (int i = 2; i <= inferenceResultSets.size(); i++) {
-
-                    Sets.combinations(inferenceResultSets, i).forEach(set -> {
-                        List<Set<Medication>> lists = ImmutableList.copyOf(set);
-
-                        Set<Medication> intersect = ImmutableSet.of();
-
-                        for (int j = 0; j < lists.size(); j++) {
-                            intersect = Sets.intersection(lists.get(j), lists.get(j + 1));
-                        }
-
-                        if (intersect.size() == 1) {
-                            uniqueInferredResults.add(intersect.iterator().next());
-                        } else {
-                            inferredRemainder.add(lists.get(0));
-                            inferredRemainder.add(lists.get(1));
-                        }
-                    });
-                }
-            }
-
-            Set<Medication> allInferredRemainders = inferredRemainder.stream()
-                    .flatMap(Collection::stream)
-                    .collect(ImmutableSet.toImmutableSet());
+            Set<Medication> uniqueInferredResults = inferredResultSets.stream()
+                    .filter(set -> set.size() == 1)
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
 
             if (uniqueInferredResults.size() == 1) {
                 Medication medication = uniqueInferredResults.iterator().next();
 
-                drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+                Coding medicationCoding = medication.getCode().getCodingFirstRep();
+
+                drug.setNormRxName2(medicationCoding.getDisplay());
+                drug.setNormRxCui2(medicationCoding.getCode());
 
                 getContext().getLogger().log(Level.INFO, "Tagging inferred " +
                         medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
-                        drug.getCoveredText()
-                );
+                        drug.getCoveredText());
+            }
 
             } else {
                 inferredRemainder.add(uniqueInferredResults);
