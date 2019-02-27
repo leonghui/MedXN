@@ -19,7 +19,10 @@ package org.ohnlp.medxn.fhir;
 import com.google.common.collect.*;
 import org.ahocorasick.trie.Trie;
 import org.apache.uima.jcas.tcas.Annotation;
-import org.hl7.fhir.r4.model.*;
+import org.hl7.fhir.r4.model.CodeableConcept;
+import org.hl7.fhir.r4.model.Coding;
+import org.hl7.fhir.r4.model.Medication;
+import org.hl7.fhir.r4.model.Reference;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -32,10 +35,10 @@ public class FhirQueryUtils {
                 .map(Map.Entry::getKey);
     }
 
-    public static String getCodeFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
+    @SuppressWarnings("UnstableApiUsage")
+    public static Set<String> getCodeFromKeywordMap(SetMultimap<String, String> keywordMap, String keyword) {
         return getKeyStreamFromKeywordMap(keywordMap, keyword)
-                .findFirst()
-                .orElse(null);
+                .collect(ImmutableSet.toImmutableSet());
     }
 
     @SuppressWarnings("UnstableApiUsage")

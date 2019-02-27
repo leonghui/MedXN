@@ -45,6 +45,7 @@ import org.ohnlp.typesystem.type.syntax.WordToken;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -175,9 +176,11 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                 int begin = sentence.getBegin() + emit.getStart();
                 int end = sentence.getBegin() + emit.getEnd() + 1;
 
-                String code = FhirQueryUtils.getCodeFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
+                Set<String> codes = FhirQueryUtils.getCodeFromKeywordMap(ingredients.keywordMap, emit.getKeyword());
 
-                createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, code);
+                codes.forEach(code ->
+                        createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, code)
+                );
 
                 getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
             });
@@ -200,14 +203,16 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                             )
                             .findFirst()
                             .ifPresent(keyword -> {
-                                String code = FhirQueryUtils
+                                Set<String> codes = FhirQueryUtils
                                         .getCodeFromKeywordMap(ingredients.keywordMap, keyword);
 
-                                createAnnotationsForIngredient(
-                                        jcas, (Sentence) sentence, wordToken.getBegin(), wordToken.getEnd(), code);
+                                codes.forEach(code ->
+                                        createAnnotationsForIngredient(
+                                                jcas, (Sentence) sentence, wordToken.getBegin(), wordToken.getEnd(), code)
+                                );
 
                                 getContext().getLogger().log(
-                                        Level.INFO, "Found ingredient via fuzzy matching: " +
+                                        Level.INFO, "Found ingredient(s) via fuzzy matching: " +
                                                 wordToken.getCoveredText()
                                 );
                             }));
