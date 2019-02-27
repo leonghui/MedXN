@@ -16,8 +16,10 @@
 
 package org.ohnlp.medxn.ae;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import org.apache.uima.UimaContext;
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
@@ -27,16 +29,13 @@ import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
 import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.MedicationKnowledge;
-import org.hl7.fhir.r4.model.Reference;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryFilters;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
 import org.ohnlp.medxn.type.Ingredient;
-import org.ohnlp.medxn.type.MedAttr;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 @SuppressWarnings("UnstableApiUsage")
@@ -46,8 +45,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
     private String url;
     private Comparator<Medication> byDisplayLength = Comparator.comparingInt((Medication m) ->
             m.getCode().getCodingFirstRep().getDisplay().length());
-    private FhirQueryClient queryClient;
-    
+
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
         super.initialize(uimaContext);
@@ -55,7 +53,7 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
         // Get config parameter values
         url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
-        queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+        FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         allMedications = queryClient.getAllMedications();
         allMedicationKnowledge = queryClient.getAllMedicationKnowledge();
@@ -67,136 +65,159 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
 
             Drug drug = (Drug) drugAnnotation;
 
-            FhirQueryFilters queryFilters = FhirQueryFilters.createQueryFilter(getContext(), queryClient, jcas, drug);
+            FhirQueryFilters queryFilters = FhirQueryFilters.createQueryFilter(getContext(), jcas, drug, allMedications, allMedicationKnowledge);
 
             String brand = Optional.ofNullable(drug.getBrand()).orElse("");
 
-            Set<String> candidateBrands = ImmutableSet.copyOf(brand.split(","));
+            Set<String> candidateBrands = Strings.isNullOrEmpty(brand) ? ImmutableSet.of() : brand.contains(",") ? ImmutableSet.copyOf(brand.split(",")) : ImmutableSet.of(brand);
 
             Set<Medication> candidateMedications = candidateBrands.isEmpty() ? findGenericMedications(jcas, drug) :
                     FhirQueryUtils.getMedicationsFromCode(allMedications, candidateBrands);
 
-            Set<Medication> initialResults = ImmutableSet.copyOf(candidateMedications);
+            Set<Medication> initialResults = queryFilters.getValidatedSet(candidateMedications);
 
-            Set<Medication> formResults = queryFilters.byDoseForm(initialResults);
+            getContext().getLogger().log(Level.INFO, "Found " + initialResults.size() +
+                    " matches with the same brand/ingredient(s)" +
+                    " for drug: " + drug.getCoveredText()
+            );
 
-            Set<Medication> strengthResults = queryFilters.byStrength(initialResults);
+            Set<Medication> formResults = queryFilters.byDoseForm(initialResults, false);
 
-            Set<Medication> combinedResults = queryFilters.byDoseFormAndStrength(initialResults);
+            Set<Medication> strengthResults = queryFilters.byStrength(initialResults, false);
 
-            Set<Set<Medication>> resultSets = ImmutableSet.of(
-                    initialResults, strengthResults, formResults, combinedResults);
+            Set<Medication> routeInferenceResults = queryFilters.byRouteInference(initialResults, false);
 
-            Set<Medication> routeInferenceResults = queryFilters.byRouteInference(initialResults);
+            Set<Medication> strengthInferenceResults = queryFilters.byStrengthInference(initialResults, false);
 
-            Set<Medication> strengthInferenceResults = queryFilters.byStrengthInference(initialResults);
+            // prefer results with dose form match
+            Set<Medication> formOrRouteResults = !formResults.isEmpty() ? formResults : routeInferenceResults;
 
-            Set<Medication> associationInferenceResults = queryFilters.byAssociationInference(initialResults);
+            // prefer results with paired ingredients match
+            Set<Medication> strengthOrInferredResults = !strengthResults.isEmpty() ? strengthResults : strengthInferenceResults;
 
-            Set<Set<Medication>> inferenceResultSets = ImmutableSet.of(
-                    routeInferenceResults, strengthInferenceResults, associationInferenceResults);
-
-            resultSets.stream()
+            Set<Set<Medication>> resultSets = Stream.of(
+                    initialResults, formOrRouteResults, strengthOrInferredResults)
                     .filter(set -> !set.isEmpty())
-                    .min(Comparator.comparingInt(Set::size))
-                    .ifPresent(set -> {
-                        if (set.size() == 1) {
-                            Medication medication = set.iterator().next();
+                    .collect(ImmutableSet.toImmutableSet());
 
-                            drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
-                            drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
+            Set<Medication> uniqueResults = new HashSet<>();
 
-                            getContext().getLogger().log(Level.INFO, "Tagging " +
-                                    medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
-                                    drug.getCoveredText()
-                            );
+            Set<Set<Medication>> remainder = new HashSet<>();
 
+            if (resultSets.size() == 1) {
+                Set<Medication> finalSet = resultSets.iterator().next();
+                if (finalSet.size() == 1) {
+                    uniqueResults.add(finalSet.iterator().next());
+                } else {
+                    remainder.add(finalSet);
+                }
+            } else {
+                for (int i = 2; i <= resultSets.size(); i++) {
+
+                    Sets.combinations(resultSets, i).forEach(set -> {
+                        List<Set<Medication>> lists = ImmutableList.copyOf(set);
+
+                        Set<Medication> intersect = lists.get(0);
+
+                        for (int j = 1; j < lists.size(); j++) {
+                            intersect = Sets.intersection(lists.get(j), intersect);
+                        }
+
+                        if (intersect.size() == 1) {
+                            uniqueResults.add(intersect.iterator().next());
                         } else {
-                            getContext().getLogger().log(Level.INFO, "Remaining matches for drug: " +
-                                    drug.getCoveredText() + " : " +
-                                    FhirQueryUtils.getDisplayNameFromMedications(set)
-                            );
+                            remainder.add(lists.get(0));
+                            remainder.add(lists.get(1));
                         }
                     });
+                }
+            }
 
-            inferenceResultSets.stream()
+            Set<Medication> allRemainders = remainder.stream()
+                    .flatMap(Collection::stream)
+                    .collect(ImmutableSet.toImmutableSet());
+
+            if (uniqueResults.size() == 1) {
+                Medication medication = uniqueResults.iterator().next();
+
+                drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
+                drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
+
+                getContext().getLogger().log(Level.INFO, "Tagging " +
+                        medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
+                        drug.getCoveredText()
+                );
+
+            } else {
+                remainder.add(uniqueResults);
+                getContext().getLogger().log(Level.INFO, "Remaining matches for drug: " +
+                        drug.getCoveredText() + " : " +
+                        FhirQueryUtils.getDisplayNameFromMedications(allRemainders)
+                );
+            }
+
+
+            Set<Medication> uniqueInferredResults = new HashSet<>();
+
+            Set<Set<Medication>> inferredRemainder = new HashSet<>();
+
+            Set<Set<Medication>> inferenceResultSets = resultSets.stream()
+                    .map(set -> queryFilters.byAssociationInference(set, false))
                     .filter(set -> !set.isEmpty())
-                    .min(Comparator.comparingInt(Set::size))
-                    .ifPresent(set -> {
-                        if (set.size() == 1) {
-                            Medication medication = set.iterator().next();
+                    .collect(ImmutableSet.toImmutableSet());
 
-                            drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
-                            drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+            if (inferenceResultSets.size() == 1) {
+                Set<Medication> finalSet = inferenceResultSets.iterator().next();
+                if (finalSet.size() == 1) {
+                    uniqueInferredResults.add(finalSet.iterator().next());
+                } else {
+                    inferredRemainder.add(finalSet);
+                }
+            } else {
+                for (int i = 2; i <= inferenceResultSets.size(); i++) {
 
-                            getContext().getLogger().log(Level.INFO, "Tagging inferred " +
-                                    medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
-                                    drug.getCoveredText()
-                            );
+                    Sets.combinations(inferenceResultSets, i).forEach(set -> {
+                        List<Set<Medication>> lists = ImmutableList.copyOf(set);
 
+                        Set<Medication> intersect = ImmutableSet.of();
+
+                        for (int j = 0; j < lists.size(); j++) {
+                            intersect = Sets.intersection(lists.get(j), lists.get(j + 1));
+                        }
+
+                        if (intersect.size() == 1) {
+                            uniqueInferredResults.add(intersect.iterator().next());
                         } else {
-                            getContext().getLogger().log(Level.INFO, "Remaining inferred matches for drug: " +
-                                    drug.getCoveredText() + " : " +
-                                    FhirQueryUtils.getDisplayNameFromMedications(set)
-                            );
+                            inferredRemainder.add(lists.get(0));
+                            inferredRemainder.add(lists.get(1));
                         }
                     });
+                }
+            }
+
+            Set<Medication> allInferredRemainders = inferredRemainder.stream()
+                    .flatMap(Collection::stream)
+                    .collect(ImmutableSet.toImmutableSet());
+
+            if (uniqueInferredResults.size() == 1) {
+                Medication medication = uniqueInferredResults.iterator().next();
+
+                drug.setNormRxName2(medication.getCode().getCodingFirstRep().getDisplay());
+                drug.setNormRxCui2(medication.getCode().getCodingFirstRep().getCode());
+
+                getContext().getLogger().log(Level.INFO, "Tagging inferred " +
+                        medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
+                        drug.getCoveredText()
+                );
+
+            } else {
+                inferredRemainder.add(uniqueInferredResults);
+                getContext().getLogger().log(Level.INFO, "Remaining inferred matches for drug: " +
+                        drug.getCoveredText() + " : " +
+                        FhirQueryUtils.getDisplayNameFromMedications(allInferredRemainders)
+                );
+            }
         });
-    }
-
-    private boolean tagParentMedication(JCas jcas, Drug drug, Medication specificMedication) {
-        FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
-
-        List<MedAttr> attributes = Streams.stream(attributeArray)
-                .map(MedAttr.class::cast)
-                .collect(ImmutableList.toImmutableList());
-
-        boolean hasStrength = attributes.stream()
-                .map(MedAttr::getTag)
-                .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.STRENGTH));
-
-        boolean hasBrand = !Optional.ofNullable(drug.getBrand()).orElse("").isEmpty();
-
-        Set<String> parentCodes = allMedicationKnowledge.get(specificMedication.getCode().getCodingFirstRep().getCode())
-                .getAssociatedMedication()
-                .stream()
-                .map(Reference::getReference)
-                .map(string -> string.split("/")[1].split("rxNorm-")[1])
-                .collect(ImmutableSet.toImmutableSet());
-
-        Stream<Medication> medicationStream = FhirQueryUtils
-                .getMedicationsFromCode(allMedications, parentCodes)
-                .stream();
-
-        if (hasStrength) {
-            medicationStream = medicationStream
-                    .filter(medication -> medication.getIngredient().stream()
-                            .allMatch(component -> component.getStrength().getNumerator().getUnit() != null &&
-                                    component.getStrength().getNumerator().getValue() != null));
-        } else {
-            medicationStream = medicationStream
-                    .filter(medication -> medication.getIngredient().stream()
-                            .allMatch(component -> component.getStrength().getNumerator().getUnit() == null &&
-                                    component.getStrength().getNumerator().getValue() == null));
-        }
-
-        if (hasBrand) {
-            medicationStream = medicationStream
-                    .filter(medication -> !medication.getExtensionsByUrl(url + "StructureDefinition/brand").isEmpty());
-        } else {
-            medicationStream = medicationStream
-                    .filter(medication -> medication.getExtensionsByUrl(url + "StructureDefinition/brand").isEmpty());
-        }
-
-        AtomicBoolean isTagged = new AtomicBoolean(false);
-
-        medicationStream.max(byDisplayLength).ifPresent(medication -> {
-            drug.setNormRxName(medication.getCode().getCodingFirstRep().getDisplay());
-            drug.setNormRxCui(medication.getCode().getCodingFirstRep().getCode());
-            isTagged.set(true);
-        });
-
-        return isTagged.get();
     }
 
     @SuppressWarnings("UnstableApiUsage")
