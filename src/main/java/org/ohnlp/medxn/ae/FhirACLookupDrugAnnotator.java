@@ -36,6 +36,7 @@ import org.apache.uima.jcas.JCas;
 import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
+import org.hl7.fhir.r4.model.Substance;
 import org.ohnlp.medtagger.type.ConceptMention;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
@@ -45,6 +46,7 @@ import org.ohnlp.typesystem.type.syntax.WordToken;
 import org.ohnlp.typesystem.type.textspan.Sentence;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,6 +60,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
     private final Pattern doublePunctOrWhitespace = Pattern.compile("(\\p{Punct}|\\s){2}");
     private final Pattern htmlEntities = Pattern.compile("&\\S+;");
     private final Damerau damerau = new Damerau();
+    private Map<String, Substance> allSubstances;
 
     @Override
     public void initialize(UimaContext uimaContext) throws ResourceInitializationException {
@@ -67,9 +70,9 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         String url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
         int timeout = (int) uimaContext.getConfigParameterValue("TIMEOUT_SEC");
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
+        allSubstances = queryClient.getAllSubstances();
 
-        queryClient
-                .getAllSubstances()
+        allSubstances
                 .forEach((code, substance) -> {
                     ingredients.keywordMap.put(code,
                             substance.getCode().getCodingFirstRep().getDisplay());
@@ -182,7 +185,7 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
                         createAnnotationsForIngredient(jcas, (Sentence) sentence, begin, end, code)
                 );
 
-                getContext().getLogger().log(Level.INFO, "Found ingredient: " + emit.getKeyword());
+                getContext().getLogger().log(Level.INFO, "Found ingredient(s): " + emit.getKeyword());
             });
 
             List<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
@@ -224,12 +227,10 @@ public class FhirACLookupDrugAnnotator extends JCasAnnotator_ImplBase {
         Ingredient ingredient = new Ingredient(jcas, begin, end);
 
         ingredient.setItem(code);
-        ingredient.addToIndexes(jcas);
 
         ConceptMention concept = new ConceptMention(jcas, begin, end);
 
-        String ingredientTerm = ingredients.keywordMap.get(code)
-                .stream().findFirst().orElse("");
+        String ingredientTerm = allSubstances.get(code).getCode().getCodingFirstRep().getDisplay();
 
         concept.setNormTarget(ingredientTerm);
         concept.setSemGroup(code + "::IN");
