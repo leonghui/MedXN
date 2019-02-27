@@ -201,11 +201,9 @@ public class FhirACLookupDrugFormAnnotator extends JCasAnnotator_ImplBase {
                     }
 
                     if (formEmit != null) {
-                        FhirQueryUtils
-                                .getCodeFromKeywordMap(doseForms.keywordMap, formEmit.getKeyword())
-                                .stream()
-                                .findFirst()
-                                .ifPresent(drug::setForm);
+                        String code = FhirQueryUtils
+                                .getCodeFromKeywordMap(doseForms.keywordMap, formEmit.getKeyword());
+                        drug.setForm(code);
                     }
                 }
             }
