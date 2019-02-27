@@ -29,6 +29,8 @@ import org.ohnlp.medxn.type.MedAttr;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FhirQueryFilters {
@@ -36,31 +38,48 @@ public class FhirQueryFilters {
     private final Map<String, MedicationKnowledge> allMedicationKnowledge;
     private final UimaContext context;
     private final String url;
-    private JCas jcas;
-    private Drug drug;
-    private Comparator<Medication> byDisplayLength = Comparator.comparingInt((Medication m) ->
-            m.getCode().getCodingFirstRep().getDisplay().length());
+    private final JCas jcas;
+    private final Drug drug;
 
-    private FhirQueryFilters(UimaContext uimaContext, FhirQueryClient queryClient, JCas jcas, Drug drug) {
+    private final BiConsumer<Medication, String> logDisplayTerm = (Medication medication, String label) ->
+            getContext().getLogger().log(Level.INFO, label + " : " +
+                    medication.getCode().getCodingFirstRep().getDisplay());
+
+    private Comparator<Medication> byDisplayLength = Comparator.comparingInt((Medication medication) ->
+            medication.getCode().getCodingFirstRep().getDisplay().length());
+
+    private FhirQueryFilters(UimaContext uimaContext, JCas parentJcas, Drug subjectDrug, Map<String, Medication> parentAllMedications, Map<String, MedicationKnowledge> parentAllMedicationKnowledge) {
         context = uimaContext;
-        url = (String) uimaContext.getConfigParameterValue("FHIR_SERVER_URL");
+        url = (String) context.getConfigParameterValue("FHIR_SERVER_URL");
+        jcas = parentJcas;
+        drug = subjectDrug;
 
-        allMedications = queryClient.getAllMedications();
-        allMedicationKnowledge = queryClient.getAllMedicationKnowledge();
+        allMedications = parentAllMedications;
+        allMedicationKnowledge = parentAllMedicationKnowledge;
     }
 
-    public static FhirQueryFilters createQueryFilter(
-            UimaContext context, FhirQueryClient queryClient, JCas jcas, Drug drug) {
-        return new FhirQueryFilters(context, queryClient, jcas, drug);
+    public static FhirQueryFilters createQueryFilter(UimaContext uimaContext, JCas parentJcas, Drug subjectDrug, Map<String, Medication> parentAllMedications, Map<String, MedicationKnowledge> parentAllMedicationKnowledge) {
+        return new FhirQueryFilters(uimaContext, parentJcas, subjectDrug, parentAllMedications, parentAllMedicationKnowledge);
     }
 
-    private Stream<Medication> validateDoseForm(Stream<Medication> medicationStream, boolean isStrict) {
+    @SuppressWarnings("UnstableApiUsage")
+    private Stream<Medication> validateDoseFormOrRoute(Stream<Medication> medicationStream, boolean isStrict) {
 
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
-        if (doseForm.contentEquals("") && isStrict) {
+        FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
+
+        List<MedAttr> attributes = Streams.stream(attributeArray)
+                .map(MedAttr.class::cast)
+                .collect(ImmutableList.toImmutableList());
+
+        boolean hasRoute = attributes.stream()
+                .map(MedAttr::getTag)
+                .anyMatch(tag -> tag.contentEquals(FhirQueryUtils.MedAttrConstants.ROUTE));
+
+        if (doseForm.contentEquals("") && !hasRoute && isStrict) {
             medicationStream = Stream.empty();
-        } else if (doseForm.contentEquals("")) {
+        } else if (doseForm.contentEquals("") && !hasRoute) {
             medicationStream = medicationStream.filter(medication -> !medication.hasForm());
         } else {
             medicationStream = medicationStream.filter(Medication::hasForm);
@@ -121,13 +140,23 @@ public class FhirQueryFilters {
         return medicationStream;
     }
 
+    public Set<Medication> getValidatedSet(Set<Medication> medications) {
+        Stream<Medication> medicationStream = validateBrand(medications.stream(), false);
+
+        medicationStream = validateDoseFormOrRoute(medicationStream, false);
+
+        medicationStream = validateStrength(medicationStream, false);
+
+        return medicationStream.collect(Collectors.toSet());
+    }
+
     @SuppressWarnings("UnstableApiUsage")
-    public Set<Medication> byDoseForm(Set<Medication> medications) {
+    public Set<Medication> byDoseForm(Set<Medication> medications, boolean isSilent) {
 
         // CRITERION 2a: Include only medications with the same dose form
         String doseForm = Optional.ofNullable(drug.getForm()).orElse("");
 
-        Set<Medication> results = validateDoseForm(medications.stream(), true)
+        Set<Medication> results = validateDoseFormOrRoute(medications.stream(), true)
                 .filter(medication -> medication
                         .getForm()
                         .getCodingFirstRep()
@@ -135,13 +164,13 @@ public class FhirQueryFilters {
                         .contentEquals(doseForm))
                 .collect(ImmutableSet.toImmutableSet());
 
-        logResults("dose form", drug, results);
+        logResults("dose form", drug, results, isSilent);
 
         return results;
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public Set<Medication> byRouteInference(Set<Medication> medications) {
+    public Set<Medication> byRouteInference(Set<Medication> medications, boolean isSilent) {
 
         // CRITERION 2b: Include only medications with the same route, if dose form is not found or unavailable
         FSArray attributeArray = Optional.ofNullable(drug.getAttrs()).orElse(new FSArray(jcas, 0));
@@ -153,6 +182,7 @@ public class FhirQueryFilters {
 
         Set<Medication> results = routes.stream()
                 .flatMap(route -> medications.stream()
+                        .filter(Medication::hasForm)
                         .filter(medication -> {
                             String routeNormText;
 
@@ -204,13 +234,13 @@ public class FhirQueryFilters {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
-        logResults("route", drug, results);
+        logResults("route", drug, results, isSilent);
 
         return results;
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public Set<Medication> byStrength(Set<Medication> medications) {
+    public Set<Medication> byStrength(Set<Medication> medications, boolean isSilent) {
 
         FSArray ingredientArray = Optional.ofNullable(drug.getIngredients()).orElse(new FSArray(jcas, 0));
 
@@ -232,13 +262,13 @@ public class FhirQueryFilters {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
-        logResults("ingredient-strength pair(s)", drug, results);
+        logResults("ingredient-strength pair(s)", drug, results, isSilent);
 
         return results;
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public Set<Medication> byStrengthInference(Set<Medication> medications) {
+    public Set<Medication> byStrengthInference(Set<Medication> medications, boolean isSilent) {
 
         FSArray ingredientArray = Optional.ofNullable(drug.getIngredients()).orElse(new FSArray(jcas, 0));
 
@@ -260,27 +290,18 @@ public class FhirQueryFilters {
                 )
                 .collect(ImmutableSet.toImmutableSet());
 
-        logResults("strength(s)", drug, results);
-
-        return results;
-    }
-
-    public Set<Medication> byDoseFormAndStrength(Set<Medication> medications) {
-
-        Set<Medication> results = Sets.intersection(
-                byDoseForm(medications),
-                byStrength(medications));
-
-        logResults("same strength and dose form", drug, results);
+        logResults("unpaired strength(s)", drug, results, isSilent);
 
         return results;
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public Set<Medication> byAssociationInference(Set<Medication> medications) {
+    public Set<Medication> byAssociationInference(Set<Medication> medications, boolean isSilent) {
+
+        Stream<Medication> childStream = medications.stream();
 
         // CRITERION 4: Include common associations (parent concepts)
-        List<Set<String>> listOfParents = medications.stream()
+        List<Set<String>> listOfParents = childStream
                 .map(Medication::getCode)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getCode)
@@ -292,36 +313,40 @@ public class FhirQueryFilters {
                         .collect(ImmutableSet.toImmutableSet()))
                 .collect(ImmutableList.toImmutableList());
 
-        // Intersection of stream of sets into new set
-        // https://stackoverflow.com/a/38266681
-        Set<String> commonParentCodes = listOfParents.stream().skip(1)
-                .collect(() -> new HashSet<>(listOfParents.get(0)), Set::retainAll, Set::retainAll);
+        if (!listOfParents.isEmpty()) {
+            // Intersection of stream of sets into new set
+            // https://stackoverflow.com/a/38266681
+            Set<String> commonParentCodes = listOfParents.stream()
+                    .filter(set -> !set.isEmpty())
+                    .collect(() -> new HashSet<>(listOfParents.get(0)), Set::retainAll, Set::retainAll);
 
-        Stream<Medication> medicationStream = FhirQueryUtils
-                .getMedicationsFromCode(allMedications, commonParentCodes).stream();
+            Stream<Medication> parentStream = getValidatedSet(FhirQueryUtils
+                    .getMedicationsFromCode(allMedications, commonParentCodes)).stream();
 
-        medicationStream = validateBrand(medicationStream, false);
+            Set<Medication> results = parentStream
+                    .collect(ImmutableSet.toImmutableSet());
 
-        medicationStream = validateDoseForm(medicationStream, false);
+            logResults("associations", drug, results, isSilent);
 
-        medicationStream = validateStrength(medicationStream, false);
-
-        Set<Medication> results = medicationStream
-                .collect(ImmutableSet.toImmutableSet());
-
-        logResults("associations", drug, results);
-
-        return results;
+            return results;
+        } else {
+            return ImmutableSet.of();
+        }
     }
 
-    private void logResults(String label, Drug drug, Set<Medication> results) {
+    private void logResults(String label, Drug drug, Set<Medication> results, boolean isSilent) {
         String logText = "Found " + results.size() +
                 " matches with the same " + label +
                 " for drug: " + drug.getCoveredText();
 
-        context.getLogger().log(Level.INFO, logText);
+        if (!isSilent) {
+            context.getLogger().log(Level.INFO, logText + " = " +
+                    FhirQueryUtils.getDisplayNameFromMedications(results));
+        }
+    }
 
-        context.getLogger().log(Level.FINE, logText + " = " + FhirQueryUtils.getDisplayNameFromMedications(results));
+    private UimaContext getContext() {
+        return context;
     }
 
     // use Adapter pattern to simplify comparisons
