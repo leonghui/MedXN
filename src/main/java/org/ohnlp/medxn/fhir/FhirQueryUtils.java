@@ -25,6 +25,7 @@ import org.hl7.fhir.r4.model.Medication;
 import org.hl7.fhir.r4.model.Reference;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FhirQueryUtils {
@@ -88,12 +89,12 @@ public class FhirQueryUtils {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public static List<String> getDisplayNameFromMedications(Collection<? extends Medication> medications) {
+    public static String getDisplayNameFromMedications(Collection<? extends Medication> medications) {
         return medications.stream()
                 .map(Medication::getCode)
                 .map(CodeableConcept::getCodingFirstRep)
                 .map(Coding::getDisplay)
-                .collect(ImmutableList.toImmutableList());
+                .collect(Collectors.joining(", "));
     }
 
     @SuppressWarnings("UnstableApiUsage")
