@@ -37,10 +37,7 @@ import org.apache.uima.jcas.cas.FSArray;
 import org.apache.uima.resource.ResourceAccessException;
 import org.apache.uima.resource.ResourceInitializationException;
 import org.apache.uima.util.Level;
-import org.hl7.fhir.r4.model.CodeableConcept;
-import org.hl7.fhir.r4.model.Coding;
 import org.hl7.fhir.r4.model.Medication;
-import org.hl7.fhir.r4.model.Substance;
 import org.ohnlp.medxn.fhir.FhirQueryClient;
 import org.ohnlp.medxn.fhir.FhirQueryUtils;
 import org.ohnlp.medxn.type.Drug;
@@ -66,7 +63,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
     private List<Sentence> sortedSentences;
     private List<MedAttr> formsRoutesFrequencies;
     private Map<String, Medication> allMedications;
-    private Map<String, Substance> allSubstances;
     private List<String> falseMedications;
 
     @SuppressWarnings("UnstableApiUsage")
@@ -80,7 +76,6 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         FhirQueryClient queryClient = FhirQueryClient.createFhirQueryClient(url, timeout);
 
         allMedications = queryClient.getAllMedications();
-        allSubstances = queryClient.getAllSubstances();
 
         try {
             Path filePath = Paths.get(getContext().getResourceURI("falseMedDict"));
@@ -124,43 +119,16 @@ public class FhirMedExtAnnotator extends JCasAnnotator_ImplBase {
         associateAttributesAndIngredients(jcas);
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     private void removeOverlappingDrugs(JCas jcas) {
         List<Drug> drugs = ImmutableList.copyOf(jcas.getAnnotationIndex(Drug.type));
 
         // remove drugs that overlap with attributes
-        // remove drugs that overlap other drugs and has shorter ingredient names
         drugs.stream()
-                .filter(drug -> {
-                    String drugName = Streams.stream(Optional.ofNullable(drug.getIngredients())
-                            .orElse(new FSArray(jcas, 0)))
-                            .map(Ingredient.class::cast)
-                            .map(Ingredient::getItem)
-                            .map(allSubstances::get)
-                            .map(Substance::getCode)
-                            .map(CodeableConcept::getCodingFirstRep)
-                            .map(Coding::getDisplay)
-                            .collect(Collectors.joining(" + "));
-
-                    return attributes.stream()
-                            .filter(attribute -> attribute.getBegin() <= drug.getBegin())
-                            .anyMatch(attribute -> attribute.getEnd() >= drug.getEnd()) ||
-                            drugs.stream()
-                                    .filter(drug2 -> drug2.getBegin() <= drug.getBegin())
-                                    .filter(drug2 -> {
-                                        String drug2Name = Streams.stream(Optional.ofNullable(drug2.getIngredients())
-                                                .orElse(new FSArray(jcas, 0)))
-                                                .map(Ingredient.class::cast)
-                                                .map(Ingredient::getItem)
-                                                .map(allSubstances::get)
-                                                .map(Substance::getCode)
-                                                .map(CodeableConcept::getCodingFirstRep)
-                                                .map(Coding::getDisplay)
-                                                .collect(Collectors.joining(" + "));
-                                        return drug2Name.length() > drugName.length();
-                                    })
-                                    .anyMatch(drug2 -> drug2.getEnd() >= drug.getEnd());
-                })
+                .filter(drug ->
+                        attributes.stream()
+                                .filter(attribute -> attribute.getBegin() <= drug.getBegin())
+                                .anyMatch(attribute -> attribute.getEnd() >= drug.getEnd())
+                )
                 .forEach(Drug::removeFromIndexes);
     }
 
