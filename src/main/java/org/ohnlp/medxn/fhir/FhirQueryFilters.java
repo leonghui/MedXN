@@ -320,8 +320,23 @@ public class FhirQueryFilters {
                     .filter(set -> !set.isEmpty())
                     .collect(() -> new HashSet<>(listOfParents.get(0)), Set::retainAll, Set::retainAll);
 
-            Stream<Medication> parentStream = getValidatedSet(FhirQueryUtils
-                    .getMedicationsFromCode(allMedications, commonParentCodes)).stream();
+            Map<String, Long> frequencyTable = listOfParents.stream()
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
+
+            Set<String> mostFrequentCodes = frequencyTable.entrySet().stream()
+                    .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                    .limit(listOfParents.stream()
+                            .map(Set::size)
+                            .max(Integer::compare)
+                            .orElse(0))
+                    .map(Map.Entry::getKey)
+                    .collect(ImmutableSet.toImmutableSet());
+
+            Set<String> codesToRetrieve = !commonParentCodes.isEmpty() ? commonParentCodes : mostFrequentCodes;
+
+            Stream<Medication> parentStream = FhirQueryUtils
+                    .getMedicationsFromCode(allMedications, codesToRetrieve).stream();
 
             Set<Medication> results = parentStream
                     .collect(ImmutableSet.toImmutableSet());
