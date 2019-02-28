@@ -85,7 +85,6 @@ public class FhirQueryUtils {
                 .collect(ImmutableList.toImmutableList());
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     public static String getDisplayNameFromMedications(Collection<? extends Medication> medications) {
         return medications.stream()
                 .map(Medication::getCode)

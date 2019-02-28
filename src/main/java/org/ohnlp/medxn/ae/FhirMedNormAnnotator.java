@@ -159,14 +159,6 @@ public class FhirMedNormAnnotator extends JCasAnnotator_ImplBase {
                         medication.getCode().getCodingFirstRep().getDisplay() + " to drug: " +
                         drug.getCoveredText());
             }
-
-            } else {
-                inferredRemainder.add(uniqueInferredResults);
-                getContext().getLogger().log(Level.INFO, "Remaining inferred matches for drug: " +
-                        drug.getCoveredText() + " : " +
-                        FhirQueryUtils.getDisplayNameFromMedications(allInferredRemainders)
-                );
-            }
         });
     }
 
